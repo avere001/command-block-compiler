@@ -1,0 +1,43 @@
+~~~~~ Legend ~~~~~~~~~
+[]:Needs Attention
+[+]: Added
+[-]: Scrapped
+[?]: Needs Testing
+[x]: Failed Testing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+~~~~~~~~~~~~~ FEATURES ~~~~~~~~~~~~~
+[] change endif, endwhile, etc, to just end
+[] for loops
+[] lower structure spawing by y=1
+[] add a delete button to program
+[] add objective on set_objective call
+[] print error for no macro found
+[+] and, or
+[] !=
+[] sleep macro
+[] if `` then `` else `` endif
+[] if `` then `` elseif `` then `` ... else `` endif
+[] notation for specifying objective, e.g. $i:trigger_obj = $j:vars is equivalent to $i:trigger_obj = $j
+[] not
+[] macro calls within expression
+[] nested macro calls #not within the macro, but withing the call of the macro. e.g. execute(@p, ~, ~, ~, tp(@p, ~, ~, ~))
+[] add tags to armorstand for easy deleting
+[] add a warning if you dont specify prefix/objective
+
+~~~~~~~~~~~ OPTIMIZATIONS ~~~~~~~~~~~
+[] only assign constants to scores once per value
+[] simplify grammar rules and actions (remove if len(t)... can just use another rule)
+
+~~~~~~~~~~~~~ BUGS ~~~~~~~~~~~
+[] set() macro can't accept NUM as last argument
+[] make constants for and/or evaluate to 1 or 0 regardelless of real value (e.g. "9 or 0")
+
+
+
+
+
+
+#sidenote make a bunch of macros
