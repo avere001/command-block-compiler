@@ -3,6 +3,7 @@ program_prefix = "EX"
 import macros
 
 from tree_util import flatten
+import ast
 
 #score in which the result of an expression is stored
 result_score = "{}_result".format(program_prefix)
@@ -96,8 +97,10 @@ class ExpressionNode(Node):
 				val2 = stack.pop()
 				
 				if val1[0] != '$' and val2[0] != '$':
-					#FIXME: eval is dangerous if I plan to use this on the web!
-					stack.append(str(int(eval(val1 + ' ' + e + ' ' + val2))))
+					if is_and_or_op(e):
+						ast.literal_eval(str(int(bool(eval(val1 + ' ' + e + ' ' + val2)))))
+					else:
+						ast.literal_eval(str(int(eval(val1 + ' ' + e + ' ' + val2))))
 				else:
 					val1 = convert_to_id(val1)
 					val2 = convert_to_id(val2)
