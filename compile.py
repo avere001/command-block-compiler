@@ -9,8 +9,8 @@ Lex definitions (scanner)
 """
 
 tokens = (
-   'WHILE', 'DO', 'ENDWHILE', 
-   'IF', 'THEN', 'ENDIF', 
+   'WHILE', 'DO', 'END',
+   'IF', 'THEN', 'ELSE', 
    'COMMAND', 
    'LPAREN', 'RPAREN', 'COMMA', 
    'FUNC_ID', 'ARG', 'ID', 'NUM',
@@ -58,28 +58,14 @@ def t_OR(t): 'or'; return t;
 # Ignore whitespace
 t_ignore = " \t"
 
-def t_WHILE(t):
-    'while'
-    return t
+def t_WHILE(t):'while'; return t;
+def t_DO(t): 'do'; return t;
 
-def t_DO(t):
-    'do'
-    return t
+def t_IF(t): 'if'; return t;
+def t_THEN(t): 'then'; return t;
+def t_ELSE(t): 'else'; return t;
 
-def t_ENDWHILE(t):
-    'endwhile'
-    return t
-
-def t_IF(t):
-    'if'
-    return t
-def t_ENDIF(t):
-    'endif'
-    return t
-
-def t_THEN(t):
-    'then'
-    return t
+def t_END(t): 'end'; return t;
 
 def t_FUNC_ID(t):
     r'[A-Za-z][A-Za-z0-9_]*'
@@ -240,14 +226,22 @@ def p_arg(t):
     # print "found ARG: {}".format(t[0])
 
 def p_if_statement(t):
-    'if_statement : IF statement THEN statements ENDIF'
-    t[0] = IfNode(t[2], t[4])
+    'if_statement : IF statement THEN statements END'
+    t[0] = IfNode(condition=t[2], body=t[4])
+    
+def p_if_else_statement(t):
+    'if_statement : IF statement THEN statements ELSE statements END'
+    t[0] = IfNode(condition=t[2], body=t[4], else_body=t[6])
+
 def p_while_statement(t):
-    'while_statement : WHILE statement DO statements ENDWHILE'
+    'while_statement : WHILE statement DO statements END'
     t[0] = WhileNode(t[2], t[4])
     
 def p_error(t):
-    print("Syntax error at {} on line {}".format(t.value, t.lineno))
+    if t:
+        print "Syntax error at {} on line {}".format(t.value, t.lineno)
+    else:
+        print "Syntax error: Unexpected end of input (Perhaps a missing end)"
 
 def compile(input_file, compiled_name):
     with open(input_file) as f:

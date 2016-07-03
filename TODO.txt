@@ -9,32 +9,41 @@
 
 
 ~~~~~~~~~~~~~ FEATURES ~~~~~~~~~~~~~
-[] change endif, endwhile, etc, to just end
+[+] change endif, endwhile, etc, to just end
 [] for loops
 [] lower structure spawing by y=1
-[] add a delete button to program
+[] reduce bounding box of structure to min(32, coord_length)
+[] add a delete button to programs
 [] add objective on set_objective call
 [] print error for no macro found
 [+] and, or
 [] !=
 [] sleep macro
-[] if `` then `` else `` endif
+[+] if `` then `` else `` endif
 [] if `` then `` elseif `` then `` ... else `` endif
-[] notation for specifying objective, e.g. $i:trigger_obj = $j:vars is equivalent to $i:trigger_obj = $j
+[] notation for specifying objective, (e.g. $i:trigger_obj = $j)
 [] not
 [] macro calls within expression
-[] nested macro calls #not within the macro, but withing the call of the macro. e.g. execute(@p, ~, ~, ~, tp(@p, ~, ~, ~))
+[] nested macro calls #e.g. execute(@p, ~, ~, ~, tp(@p, ~, ~, ~))
 [] add tags to armorstand for easy deleting
 [] add a warning if you dont specify prefix/objective
+[] create result_of macro()
+[] allow selectors to be used in place of variable names
+[] assertion
 
 ~~~~~~~~~~~ OPTIMIZATIONS ~~~~~~~~~~~
 [] only assign constants to scores once per value
-[] simplify grammar rules and actions (remove if len(t)... can just use another rule)
+[] simplify grammar rules and actions (remove if len(t)... can just use another rule/action)
 
 ~~~~~~~~~~~~~ BUGS ~~~~~~~~~~~
 [] set() macro can't accept NUM as last argument
-[] make constants for and/or evaluate to 1 or 0 regardelless of real value (e.g. "9 or 0")
+[] make constants for and/or evaluate to 1 or 0 regardelless of real value (e.g. "9 or 0" should be 1, not 9)
+[] can't call macro without arguments
 
+~~~~~~~~~~ SECURITY ~~~~~~~~~~~~
+[?] use ast.literal_eval instead of eval
+[] before release, comment out exec macro. (If someone hosts this they need to be aware of that)
+[] check for other uses of exec or similar
 
 
 

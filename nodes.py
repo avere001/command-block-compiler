@@ -253,33 +253,41 @@ class WhileNode(Node):
 WhileNode.count = 0
 
 class IfNode(Node):
-	def __init__(self, condition, body):
+	def __init__(self, condition, body, else_body=None):
 		super(IfNode, self).__init__("if_statement")
 
 		self.body = body
 		self.condition = condition
+		self.else_body = else_body
 		
 		self.id = IfNode.count
 		IfNode.count += 1
 
-		#labels used by this if statement
-		# IB: IF_BEGIN
-		# IE: IF_END
-		self.IB = "{}_IB_{}".format(program_prefix, self.id)
-		self.IE = "{}_IE_{}".format(program_prefix, self.id)
-
-
 	def expand(self):
-		self.IB = "{}_IB_{}".format(program_prefix, self.id)
-		self.IE = "{}_IE_{}".format(program_prefix, self.id)
+		#labels used by this if statement
+		self.IB = "{}_IB_{}".format(program_prefix, self.id) #IF BODY
+		self.IL = "{}_IL_{}".format(program_prefix, self.id) #ELSE BODY
+		self.IE = "{}_IE_{}".format(program_prefix, self.id) #IF END
 		
-		expansion = "\n".join([
+		expansion = []
+		expansion += []
+		
+		expansion = [
 			str(self.condition.expand()),
-			'jmp {} {}'.format(self.IB, self.IE),
+			'jmp {} {}'.format(self.IB, self.IL if self.else_body else self.IE),
 			'.' + self.IB,
 			str(Node.expand_list(self.body)),
-			'jmp {}'.format(self.IE),
-			'.' + self.IE
-		])
-		return expansion
+			'jmp {}'.format(self.IE)
+			]
+			
+		if self.else_body:
+			expansion += [
+				'.' + self.IL,
+				str(Node.expand_list(self.else_body)),
+				'jmp {}'.format(self.IE),
+				]
+			
+		expansion += ['.' + self.IE]
+			
+		return "\n".join(expansion)
 IfNode.count = 0
