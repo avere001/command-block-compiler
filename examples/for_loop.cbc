@@ -1,0 +1,4 @@
+for i, 0, 10 do
+	say loop_body
+rof
+

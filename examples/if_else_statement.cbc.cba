@@ -1,0 +1,30 @@
+.EX_BEGIN
+U scoreboard players set EX_result vars 1
+U scoreboard players test EX_result vars 1 *
+jmp EX_IB_0 EX_IL_0
+.EX_IB_0
+U tellraw @a ["if_1: ",{"score":{"name":"if_1","objective":"vars"}}]
+jmp EX_IE_0
+.EX_IL_0
+U tellraw @a ["else_1: ",{"score":{"name":"else_1","objective":"vars"}}]
+jmp EX_IE_0
+.EX_IE_0
+U scoreboard players set EX_result vars 0
+U scoreboard players test EX_result vars 1 *
+jmp EX_IB_2 EX_IL_2
+.EX_IB_2
+U tellraw @a ["if_2: ",{"score":{"name":"if_2","objective":"vars"}}]
+jmp EX_IE_2
+.EX_IL_2
+U scoreboard players set EX_result vars 1
+U scoreboard players test EX_result vars 1 *
+jmp EX_IB_1 EX_IL_1
+.EX_IB_1
+U tellraw @a ["elif_2: ",{"score":{"name":"elif_2","objective":"vars"}}]
+jmp EX_IE_1
+.EX_IL_1
+U tellraw @a ["inner_else_2: ",{"score":{"name":"inner_else_2","objective":"vars"}}]
+jmp EX_IE_1
+.EX_IE_1
+jmp EX_IE_2
+.EX_IE_2

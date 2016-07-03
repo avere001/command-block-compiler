@@ -1,0 +1,15 @@
+if 1 then
+    print_scores('if_1')
+else
+    print_scores('else_1')
+endif
+
+if 0 then
+    print_scores('if_2')
+else 
+    if 1 then
+        print_scores('elif_2')
+    else
+        print_scores('inner_else_2')
+    endif
+endif

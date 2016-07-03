@@ -1,0 +1,31 @@
+# def jmp LABEL1 LABEL2
+# 	C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
+# 	C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# 	U testforblock ~ ~ ~-3 minecraft:chain_command_block 3 {SuccessCount:0}
+# 	C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
+# 	C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# end
+
+# def jmp LABEL
+# 	U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
+# 	U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# end
+
+
+# while CONDITIONAL_STATEMENT do
+# BODY_STATEMENTS
+# endwhile
+
+jmp WHILE_CHECK
+.WHILE_CHECK
+### CONDITIONAL_STATEMENT ###
+jmp WHILE_BODY WHILE_END
+
+.WHILE_BODY
+
+	### BODY_STATEMENTS ###
+
+	jmp WHILE_CHECK
+
+
+.WHILE_END

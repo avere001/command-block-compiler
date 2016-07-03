@@ -1,0 +1,6 @@
+### CONDITION
+jmp IF_BEGIN IF_END
+.IF_BEGIN
+### BODY
+jmp IF_END
+.IF_END

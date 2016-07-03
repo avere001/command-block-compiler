@@ -1,0 +1,5 @@
+$i = 0
+while $i < 16 do
+	$i += 1
+	`tp @p ~1 ~ ~`
+endwhile

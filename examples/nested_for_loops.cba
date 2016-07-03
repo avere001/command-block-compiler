@@ -1,0 +1,46 @@
+# nested for loops
+# note that immediately after after a jump command there MUST be a label
+
+# def jmp LABEL1 LABEL2
+# 	C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
+# 	C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# 	U testforblock ~ ~ ~-3 minecraft:chain_command_block 3 {SuccessCount:0}
+# 	C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
+# 	C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# end
+
+# def jmp LABEL
+# 	U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
+# 	U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# end
+
+.BEGIN
+U scoreboard players set i vars 0
+
+jmp FOR_BEGIN
+.FOR_BEGIN
+	#for compare/jmp
+	U scoreboard players test i vars 10 *
+	jmp FOR_END FOR_BODY
+	
+	.FOR_BODY
+	U say outer_for_body
+
+	U scoreboard players set j vars 0
+
+	jmp INNER_FOR_BEGIN
+	.INNER_FOR_BEGIN
+		U scoreboard players test j vars 10 *
+		jmp INNER_FOR_END INNER_FOR_BODY
+
+		.INNER_FOR_BODY
+		U say inner_for_body
+
+		U scoreboard players add j vars 1
+		jmp INNER_FOR_BEGIN
+	.INNER_FOR_END
+
+	#for increment/loop
+	U scoreboard players add i vars 1
+	jmp FOR_BEGIN
+.FOR_END
