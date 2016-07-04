@@ -16,8 +16,9 @@ tokens = (
    'FUNC_ID', 'ARG', 'ID', 'NUM',
    'ASSIGN', 'ADD_ASSIGN', 'MUL_ASSIGN', 'MOD_ASSIGN', 'SUB_ASSIGN', 'DIV_ASSIGN',
    'ADD', 'SUB', 'MUL', 'DIV', 'MOD',
-   'AND', 'OR',
-   'LT', 'GT', 'LTE', 'GTE', 'EQ'
+   'AND', 'OR', 'NOT',
+   'LT', 'GT', 'LTE', 'GTE', 'EQ', 'NE',
+   'TRUE', 'FALSE'
 )
 
 states = (
@@ -43,6 +44,7 @@ t_LTE = r'<='
 t_GT = r'>'
 t_GTE = r'>='
 t_EQ = r'=='
+t_NE = r'!='
 
 #math operators
 t_ADD = r'\+'
@@ -54,6 +56,10 @@ t_MOD = r'%'
 #bool operators
 def t_AND(t): 'and'; return t;
 def t_OR(t): 'or'; return t;
+def t_NOT(t): 'not'; return t;
+
+def t_TRUE(t): 'true'; return t;
+def t_FALSE(t): 'false'; return t;
 
 # Ignore whitespace
 t_ignore = " \t"
@@ -104,7 +110,7 @@ argument =  r'(' + double_quote_string + r')' + r'|' +\
 # modified to include single quotes
 @TOKEN(argument)
 def t_funcy_ARG(t):
-    # remove backslashes http://stackoverflow.com/questions/3160752/removing-backslashes-from-a-string-in-python
+    #FIXME can't escape a string that begins with $ or ~
     import ast
     if t.value[0] not in ['$', '~']:
         t.value = str(ast.literal_eval(t.value))
@@ -134,7 +140,8 @@ precedence = (
     ('left','AND'),
     ('nonassoc','GT', 'LT', 'LTE', 'GTE', 'EQ'),
     ('left','ADD','SUB'),
-    ('left','MUL','DIV', 'MOD')
+    ('left','MUL','DIV', 'MOD'),
+    ('right', 'NOT')
     )
 
 def p_start(t):
@@ -175,7 +182,12 @@ def p_assign_statement(t):
 def p_root_expression(t):
     'root_expression : expression'
     t[0] = ExpressionNode(t[1])
-
+    
+def p_not_expression(t):
+    '''expression : NOT expression
+    '''
+    t[0] = [t[1], t[2]]
+    
 def p_expression(t):
     '''expression : expression ADD expression
                   | expression SUB expression
@@ -186,12 +198,13 @@ def p_expression(t):
                   | expression GTE expression
                   | expression LT expression
                   | expression LTE expression
+                  | expression NE expression
                   | expression EQ expression
                   | expression OR expression
                   | expression AND expression
                   | LPAREN expression RPAREN
                   | ID
-                  | NUM
+                  | const
     '''
     if len(t) == 2:
         t[0] = t[1]
@@ -200,6 +213,12 @@ def p_expression(t):
     else:
         t[0] = [t[2], t[1], t[3]]
     #print t[0]
+
+def p_const(t):
+    '''const : NUM
+             | TRUE
+             | FALSE'''
+    t[0] = {'true':'1', 'false':'0'}.get(t[1], t[1])
 
 def p_command(t):
     '''command : COMMAND
@@ -264,7 +283,7 @@ def concat_assembly(file_names, output_file_name):
             file_headers.append(header)
             
     with open(output_file_name, 'w') as o_file:
-        print file_headers
+        # print file_headers
         print >>o_file, '.MIXED_{}'.format(file_headers[0][1:]) #get rid of .
         for header in file_headers:
             print >>o_file, 'jmp {}'.format(header[1:]) #get rid of . in header
@@ -306,7 +325,7 @@ if __name__ == '__main__':
     assembly_files = []
     while macros.includes:
         lexer = lex.lex()
-        parser = yacc.yacc()
+        parser = yacc.yacc(debug=1)
         import os
         curr_file = macros.includes.pop()
         print "compiling {}".format(curr_file)

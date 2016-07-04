@@ -17,12 +17,13 @@
 [] add objective on set_objective call
 [] print error for no macro found
 [+] and, or
-[] !=
+[+] !=
 [] sleep macro
 [+] if `` then `` else `` endif
-[] if `` then `` elseif `` then `` ... else `` endif
+[] if `` then `` elsif `` then `` ... else `` endif
 [] notation for specifying objective, (e.g. $i:trigger_obj = $j)
-[] not
+[+] not
+[] commands within expression
 [] macro calls within expression
 [] nested macro calls #e.g. execute(@p, ~, ~, ~, tp(@p, ~, ~, ~))
 [] add tags to armorstand for easy deleting

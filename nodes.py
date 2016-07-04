@@ -53,13 +53,6 @@ class ExpressionNode(Node):
 		self.expr_tree = expr_tree
 
 	def expand(self):
-		# if (expression):
-
-		is_cmp_op = lambda e: e in ('<=', '==', '>=', '<', '>')
-		is_math_op = lambda e: e in "+-*/%"
-		is_and_or_op = lambda e: e in ('and','or')
-		
-		is_op = lambda e: is_cmp_op(e) or is_math_op(e) or is_and_or_op(e)
 
 		# print flatten(self.expr_tree)
 		stack = []
@@ -67,51 +60,44 @@ class ExpressionNode(Node):
 		tmp_prefix = "${}_expr_{}_".format(program_prefix, self.id)
 		tmp_name = tmp_prefix + str(num)
 		expansion = []
-		
-		def convert_to_id(val):
-			if val[0] != '$':
-				expansion.append(macros.set(val, macros.objective, val))
-				return '$' + val
-			else:
-				return val
 
 		#evaluate postfix expression
 		postfix_stack = flatten(self.expr_tree)
 		import copy
 		postfix_expr = copy.deepcopy(postfix_stack[::-1])
 		while postfix_stack:
+			
+			num += 1
+			tmp_prefix = "${}_expr_{}_".format(program_prefix, self.id)
+			
 			e = postfix_stack.pop()
 			# print "found", e
-			if is_op(e):
-				# print "is_op"
-				# pop 2 values from stack.
-				# if both are constant push the result of that
-				# on the stack (no need to compute that in-game).
-				# else expand the expression to compute and store
-				# the values into a temporary score and push
-				# the name of the score on the stack
-				tmp_name = tmp_prefix + str(num)
+			if e in "+-*/%" or e in ('<=', '==', '>=', '<', '>'):
+
+				def convert_to_id(val):
+					if val[0] != '$':
+						expansion.append(macros.set(val, macros.objective, val))
+						return '$' + val
+					else:
+						return val
 
 				# print "before: ", stack
 				val1 = stack.pop()
 				val2 = stack.pop()
 				
 				if val1[0] != '$' and val2[0] != '$':
-					if is_and_or_op(e):
-						ast.literal_eval(str(int(bool(eval(val1 + ' ' + e + ' ' + val2)))))
-					else:
-						ast.literal_eval(str(int(eval(val1 + ' ' + e + ' ' + val2))))
+					stack.append(str(int(eval(val1 + ' ' + e + ' ' + val2))))
 				else:
 					val1 = convert_to_id(val1)
 					val2 = convert_to_id(val2)
-					if is_math_op(e):
+					if e in "+-*/%":
 						expansion.append(macros.operation(
 								'=', tmp_name[1:], macros.objective, val1[1:], macros.objective))
 						expansion.append(macros.operation(
 								e + '=', tmp_name[1:], macros.objective, val2[1:], macros.objective))
 
 						stack.append(tmp_name)
-					elif is_cmp_op(e):
+					elif e in ('<=', '==', '>=', '<', '>'):
 						cmp_map = {
 							'<': ('*', '-1'),
 							'<=': ('*', '0'),
@@ -129,29 +115,47 @@ class ExpressionNode(Node):
 						expansion.append("U testforblock ~ ~ ~-2 minecraft:chain_command_block 3 {SuccessCount:0}")
 						expansion.append("C scoreboard players set {} {} 0".format(tmp_name[1:], macros.objective))
 						stack.append(tmp_name)
-					elif is_and_or_op(e):
-						#TODO convert to bool val1, val2 (and push as tmp vars)
-						expansion.append(macros.bool_of(val1[1:], macros.objective, tmp_name[1:] + "_L", macros.objective))
-						expansion.append(macros.bool_of(val2[1:], macros.objective, tmp_name[1:] + "_R", macros.objective))
-						if e == 'and':
-							postfix_stack.append('==')
-							postfix_stack.append('+')
-							postfix_stack.append(tmp_name + "_L")
-							postfix_stack.append(tmp_name + "_R")
-							postfix_stack.append('2')
-						elif e == 'or':
-							postfix_stack.append('>=')
-							postfix_stack.append('+')
-							postfix_stack.append(tmp_name + "_L")
-							postfix_stack.append(tmp_name + "_R")
-							postfix_stack.append('1')
-							
-						
-
-				num += 1
-				tmp_prefix = "${}_expr_{}_".format(program_prefix, self.id)
+			elif e == '!=':
+				val1 = stack.pop()
+				val2 = stack.pop()
+				# != is equivalent to (val1 == val2) == 0
+				postfix_stack.append('==')
+				postfix_stack.append('==')
+				postfix_stack.append(val1)
+				postfix_stack.append(val2)
+				postfix_stack.append('0')
+			elif e == 'not':
+				val = stack.pop()
+				postfix_stack.append('==') 
+				postfix_stack.append(val)
+				postfix_stack.append('0')
+			elif e in ('and', 'or'):
+				val1 = stack.pop()
+				val2 = stack.pop()
 				
-			else: #!is_op(e)
+				if val1[0] != '$' and val2[0] != '$':
+					stack.append(str(int(eval(val1 + ' ' + e + ' ' + val2))))
+				else:
+					val1 = convert_to_id(val1)
+					val2 = convert_to_id(val2)
+					
+					expansion.append(macros.bool_of(val1[1:], macros.objective, tmp_name[1:] + "_L", macros.objective))
+					expansion.append(macros.bool_of(val2[1:], macros.objective, tmp_name[1:] + "_R", macros.objective))
+					if e == 'and':
+						# and is equivalant to bool(val1) + bool(val2) == 2
+						postfix_stack.append('==')
+						postfix_stack.append('+')
+						postfix_stack.append(tmp_name + "_L")
+						postfix_stack.append(tmp_name + "_R")
+						postfix_stack.append('2')
+					elif e == 'or':
+						# or is equivalant to bool(val1) + bool(val2) >= 1
+						postfix_stack.append('>=')
+						postfix_stack.append('+')
+						postfix_stack.append(tmp_name + "_L")
+						postfix_stack.append(tmp_name + "_R")
+						postfix_stack.append('1')
+			else: # is_const(e)
 				stack.append(e)
 
 		final_val = stack[0]
