@@ -9,20 +9,15 @@
 
 
 ~~~~~~~~~~~~~ FEATURES ~~~~~~~~~~~~~
-[+] change endif, endwhile, etc, to just end
 [] for loops
 [] lower structure spawing by y=1
 [] reduce bounding box of structure to min(32, coord_length)
 [] add a delete button to programs
 [] add objective on set_objective call
 [] print error for no macro found
-[+] and, or
-[+] !=
 [] sleep macro
-[+] if `` then `` else `` endif
 [] if `` then `` elsif `` then `` ... else `` endif
 [] notation for specifying objective, (e.g. $i:trigger_obj = $j)
-[+] not
 [] commands within expression
 [] macro calls within expression
 [] nested macro calls #e.g. execute(@p, ~, ~, ~, tp(@p, ~, ~, ~))
@@ -31,20 +26,25 @@
 [] create result_of macro()
 [] allow selectors to be used in place of variable names
 [] assertion
+[+] change endif, endwhile, etc, to just end
+[+] and, or
+[+] !=
+[+] not
+[+] if `` then `` else `` endif
 
 ~~~~~~~~~~~ OPTIMIZATIONS ~~~~~~~~~~~
+[] change use of "SuccessCount" elses to use "SuccessCountName" and "SuccessCountObjective" instead of relative coords
 [] only assign constants to scores once per value
 [] simplify grammar rules and actions (remove if len(t)... can just use another rule/action)
 
 ~~~~~~~~~~~~~ BUGS ~~~~~~~~~~~
 [] set() macro can't accept NUM as last argument
-[] make constants for and/or evaluate to 1 or 0 regardelless of real value (e.g. "9 or 0" should be 1, not 9)
 [] can't call macro without arguments
+[+] make constants for and/or evaluate to 1 or 0 regardelless of real value (e.g. "9 or 0" should be 1, not 9)
 
 ~~~~~~~~~~ SECURITY ~~~~~~~~~~~~
-[?] use ast.literal_eval instead of eval
+[] use ast.literal_eval instead of eval
 [] before release, comment out exec macro. (If someone hosts this they need to be aware of that)
-[] check for other uses of exec or similar
 
 
 

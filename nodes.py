@@ -72,7 +72,12 @@ class ExpressionNode(Node):
 			
 			e = postfix_stack.pop()
 			# print "found", e
-			if e in "+-*/%" or e in ('<=', '==', '>=', '<', '>'):
+			if type(e) in [MacroNode, CommandNode]:
+				expansion.append(e.expand())
+				expansion.append(macros.operation(
+						'=', tmp_name[1:], macros.objective, result_score, macros.objective))
+				stack.append(tmp_name)
+			elif e in "+-*/%" or e in ('<=', '==', '>=', '<', '>'):
 
 				def convert_to_id(val):
 					if val[0] != '$':
@@ -134,7 +139,7 @@ class ExpressionNode(Node):
 				val2 = stack.pop()
 				
 				if val1[0] != '$' and val2[0] != '$':
-					stack.append(str(int(eval(val1 + ' ' + e + ' ' + val2))))
+					stack.append(str(int(bool(eval(val1 + ' ' + e + ' ' + val2)))))
 				else:
 					val1 = convert_to_id(val1)
 					val2 = convert_to_id(val2)
@@ -158,8 +163,9 @@ class ExpressionNode(Node):
 			else: # is_const(e)
 				stack.append(e)
 
+		#FIXME: this seems too complex, probably a better way..
 		final_val = stack[0]
-		if final_val[0] == '$' and len(postfix_expr) > 1:
+		if final_val[0] == '$' and (type(postfix_expr[0]) in [MacroNode, CommandNode] or len(postfix_expr) > 1):
 			expansion.append(macros.operation(
 				'=', result_score, macros.objective, tmp_name[1:], macros.objective))
 		elif final_val[0] == '$' and len(postfix_expr) == 1:
@@ -167,7 +173,7 @@ class ExpressionNode(Node):
 				'=', result_score, macros.objective, postfix_expr[0][1:], macros.objective))
 		else: #only a number remains
 			expansion.append(macros.set(result_score, macros.objective, final_val))
-
+			
 		expansion.append(macros.cmp(result_score, macros.objective, '1', '*'))
 
 		return "\n".join(expansion)
@@ -199,26 +205,41 @@ class MacroNode(Node):
 		super(MacroNode, self).__init__("macro")
 		self.macro_name = macro_name
 		self.args = args
+		self.context = "statement"
 		#print "args:".format(str(args))
 
 	def expand(self):
 		from macros import macros_dict
 		macro = macros_dict[self.macro_name](*self.args)
-		# print macro
-		if macro is None:
-			return ''
-		elif type(macro) == type(''):
+		macro = macro if macro is not None else ''
+		
+		if type(macro) != type(''):
+			raise ValueError("Macro must return string or None, instead got {}".format(type(macro)))
+		if self.context == "statement":
 			return macro
 		else:
-			raise ValueError("Macro must return string or None, instead got {}".format(type(macro)))
+			expansion = []
+			expansion += ["U scoreboard players set {} {} 0".format(result_score, macros.objective)]
+			expansion += [macro]
+			expansion += ["C scoreboard players set {} {} 1".format(result_score, macros.objective)]
+			return "\n".join(expansion)
+			
 
 class CommandNode(Node):
 	def __init__(self, command):
 		super(CommandNode, self).__init__("command")
-		self.command = "U " + command
+		self.command = command
+		self.context = "statement"
 
 	def expand(self):
-		return self.command
+		if self.context == "statement":
+			return "U " + self.command
+		else:
+			expansion = []
+			expansion += ["U scoreboard players set {} {} 0".format(result_score, macros.objective)]
+			expansion += ["U" + self.command]
+			expansion += ["C scoreboard players set {} {} 1".format(result_score, macros.objective)]
+			return "\n".join(expansion)
 
 class WhileNode(Node):
 	def __init__(self, condition, body):
@@ -241,6 +262,8 @@ class WhileNode(Node):
 		self.WC = "{}_WC_{}".format(program_prefix, self.id)
 		self.WB = "{}_WB_{}".format(program_prefix, self.id)
 		self.WE = "{}_WE_{}".format(program_prefix, self.id)
+
+		# print self.condition
 
 		expansion = "\n".join([
 			'jmp ' + self.WC,

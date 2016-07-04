@@ -1,6 +1,5 @@
 import nodes
 
-includes = []
 objective = "vars"
 compiler_objective = "_{}".format(objective)
 
@@ -39,6 +38,7 @@ def set_prefix(prefix):
 	set_objective("{}_v".format(prefix))
 	nodes.result_score = "{}_result".format(prefix)
 	
+includes = set([])
 def include(file_name):
 	"""
 	include a program.
@@ -49,10 +49,10 @@ def include(file_name):
 	import os
 	if include.call_count == 0:
 		file_path = os.path.realpath(file_name)
-		includes.append(file_path)
+		includes.add(file_path)
 		include.dir_path = os.path.dirname(file_path) + "/"
 	else:
-		includes.append(include.dir_path + file_name)
+		includes.add(include.dir_path + file_name)
 		
 	include.call_count += 1
 include.call_count = 0

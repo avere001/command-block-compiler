@@ -11,12 +11,13 @@ def print_tree(L, indent=""):
             print indent, '--Subtree: ', i
             print_tree(i, indent+"    ")
 
-def flatten(tree):
-
-    def _flatten(tree):
-        if type(tree) == type(""):
-            return tree
-        else:
-            return " ".join([_flatten(e) for e in tree])
-
-    return _flatten(tree).split()
+# adapted from Mu Mind's answer @ http://stackoverflow.com/questions/12472338/flattening-a-list-recursively
+def flatten(S):
+    if isinstance(S, list):
+        if S == []:
+            return S
+        if isinstance(S[0], list):
+            return flatten(S[0]) + flatten(S[1:])
+        return S[:1] + flatten(S[1:])
+    else:
+        return [S]

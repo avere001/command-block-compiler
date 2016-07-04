@@ -10,7 +10,7 @@ Lex definitions (scanner)
 
 tokens = (
    'WHILE', 'DO', 'END',
-   'IF', 'THEN', 'ELSE', 
+   'IF', 'THEN', 'ELSE',
    'COMMAND', 
    'LPAREN', 'RPAREN', 'COMMA', 
    'FUNC_ID', 'ARG', 'ID', 'NUM',
@@ -138,7 +138,7 @@ Yacc definitions (parser)
 precedence = (
     ('left','OR'),
     ('left','AND'),
-    ('nonassoc','GT', 'LT', 'LTE', 'GTE', 'EQ'),
+    ('nonassoc','GT', 'LT', 'LTE', 'GTE', 'EQ', 'NE'),
     ('left','ADD','SUB'),
     ('left','MUL','DIV', 'MOD'),
     ('right', 'NOT')
@@ -163,7 +163,7 @@ def p_statement(t):
                  | while_statement
                  | if_statement
                  | assign_statement
-                 | root_expression
+                 | func
     '''
     t[0] = t[1]
 
@@ -189,24 +189,28 @@ def p_not_expression(t):
     t[0] = [t[1], t[2]]
     
 def p_expression(t):
-    '''expression : expression ADD expression
-                  | expression SUB expression
-                  | expression MUL expression
-                  | expression DIV expression
-                  | expression MOD expression
-                  | expression GT expression
-                  | expression GTE expression
-                  | expression LT expression
-                  | expression LTE expression
-                  | expression NE expression
-                  | expression EQ expression
-                  | expression OR expression
-                  | expression AND expression
+    '''expression : expression ADD expression %prec ADD
+                  | expression SUB expression %prec SUB
+                  | expression MUL expression %prec MUL
+                  | expression DIV expression %prec DIV
+                  | expression MOD expression %prec MOD
+                  | expression GT expression  %prec GT
+                  | expression GTE expression %prec GTE
+                  | expression LT expression  %prec LT
+                  | expression LTE expression %prec LTE
+                  | expression NE expression  %prec NE
+                  | expression EQ expression  %prec EQ
+                  | expression OR expression  %prec OR
+                  | expression AND expression %prec AND
                   | LPAREN expression RPAREN
                   | ID
                   | const
+                  | command
+                  | func
     '''
     if len(t) == 2:
+        if type(t[1]) in [MacroNode, CommandNode]:
+            t[1].context = "expression"
         t[0] = t[1]
     elif t[1] == '(':
         t[0] = t[2]
@@ -220,15 +224,13 @@ def p_const(t):
              | FALSE'''
     t[0] = {'true':'1', 'false':'0'}.get(t[1], t[1])
 
+def p_func(t):
+    '''func : FUNC_ID LPAREN args RPAREN'''
+    t[0] = MacroNode(t[1], t[3])
+
 def p_command(t):
-    '''command : COMMAND
-               | FUNC_ID LPAREN args RPAREN
-    '''
-    if len(t) == 2:
-        t[0] = CommandNode(t[1][1:-1])
-    else:
-        # print "creating macronode with {}".format(str(t[1:]))
-        t[0] = MacroNode(t[1], t[3])
+    '''command : COMMAND'''
+    t[0] = CommandNode(t[1][1:-1])
 
 def p_args(t):
     '''args : arg
@@ -239,21 +241,22 @@ def p_args(t):
     else:
         t[0] = t[1]+ [t[3]]
 
+#FIXME: don't use a single generic terminal
 def p_arg(t):
     '''arg : ARG'''
     t[0] = t[1]
     # print "found ARG: {}".format(t[0])
 
 def p_if_statement(t):
-    'if_statement : IF statement THEN statements END'
+    'if_statement : IF root_expression THEN statements END'
     t[0] = IfNode(condition=t[2], body=t[4])
     
 def p_if_else_statement(t):
-    'if_statement : IF statement THEN statements ELSE statements END'
+    'if_statement : IF root_expression THEN statements ELSE statements END'
     t[0] = IfNode(condition=t[2], body=t[4], else_body=t[6])
 
 def p_while_statement(t):
-    'while_statement : WHILE statement DO statements END'
+    'while_statement : WHILE root_expression DO statements END'
     t[0] = WhileNode(t[2], t[4])
     
 def p_error(t):
