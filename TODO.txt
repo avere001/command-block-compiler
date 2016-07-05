@@ -16,7 +16,7 @@
 [] add objective on set_objective call
 [] print error for no macro found
 [] sleep macro
-[] if `` then `` elsif `` then `` ... else `` endif
+[] if `` then `` elsif `` then `` ... else `` end
 [] notation for specifying objective, (e.g. $i:trigger_obj = $j)
 [] commands within expression
 [] macro calls within expression
@@ -30,7 +30,7 @@
 [+] and, or
 [+] !=
 [+] not
-[+] if `` then `` else `` endif
+[+] if `` then `` else `` end
 
 ~~~~~~~~~~~ OPTIMIZATIONS ~~~~~~~~~~~
 [] change use of "SuccessCount" elses to use "SuccessCountName" and "SuccessCountObjective" instead of relative coords

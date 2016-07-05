@@ -26,8 +26,10 @@ states = (
 )
 
 t_COMMAND = r'`[^`]*`'
-t_ID = r'\$[A-Za-z0-9_][A-Za-z0-9_]*'
-non_zero_num = r'[1-9][0-9]*'
+# selector = r'(@[prae](\[[^\]]*\])?)|([A-Za-z0-9_][A-Za-z0-9_]*)'
+# t_ID = r'\$(' + selector + r')(:[A-Za-z0-9_][A-Za-z0-9_]*)?'
+t_ID = r'((@[prae](\[[^\]]*\])?)|(\$[A-Za-z0-9_][A-Za-z0-9_]*))(:[A-Za-z0-9_][A-Za-z0-9_]*)?'
+non_zero_num = r'-?[1-9][0-9]*'
 t_NUM = r'0' + r'|' + non_zero_num
 
 #assignment operators
@@ -169,12 +171,12 @@ def p_statement(t):
 
 def p_assign_statement(t):
     '''
-    assign_statement : ID ASSIGN root_expression
-                     | ID ADD_ASSIGN root_expression
-                     | ID SUB_ASSIGN root_expression
-                     | ID DIV_ASSIGN root_expression
-                     | ID MUL_ASSIGN root_expression
-                     | ID MOD_ASSIGN root_expression
+    assign_statement : id ASSIGN root_expression
+                     | id ADD_ASSIGN root_expression
+                     | id SUB_ASSIGN root_expression
+                     | id DIV_ASSIGN root_expression
+                     | id MUL_ASSIGN root_expression
+                     | id MOD_ASSIGN root_expression
     '''
     # print "assign_statement"
     t[0] = AssignNode(t[1], t[2], t[3])
@@ -203,7 +205,7 @@ def p_expression(t):
                   | expression OR expression  %prec OR
                   | expression AND expression %prec AND
                   | LPAREN expression RPAREN
-                  | ID
+                  | id
                   | const
                   | command
                   | func
@@ -217,6 +219,17 @@ def p_expression(t):
     else:
         t[0] = [t[2], t[1], t[3]]
     #print t[0]
+
+def p_id(t):
+    ''' id : ID '''
+    ident = t[1]
+    if ident[0] == '@':
+        ident = '$' + ident
+    if ':' in ident:
+        selector, objective = ident.split(':')
+        t[0] = {'selector': selector, 'objective': objective}
+    else:
+        t[0] = {'selector': ident}
 
 def p_const(t):
     '''const : NUM
@@ -263,7 +276,7 @@ def p_error(t):
     if t:
         print "Syntax error at {} on line {}".format(t.value, t.lineno)
     else:
-        print "Syntax error: Unexpected end of input (Perhaps a missing end)"
+        print "Syntax error: Unexpected end of input (Perhaps a missing 'end')"
 
 def compile(input_file, compiled_name):
     with open(input_file) as f:

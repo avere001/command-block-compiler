@@ -58,17 +58,35 @@ class ExpressionNode(Node):
 		stack = []
 		num = 0
 		tmp_prefix = "${}_expr_{}_".format(program_prefix, self.id)
-		tmp_name = tmp_prefix + str(num)
 		expansion = []
 
 		#evaluate postfix expression
 		postfix_stack = flatten(self.expr_tree)
+		# print postfix_stack
 		import copy
 		postfix_expr = copy.deepcopy(postfix_stack[::-1])
+		
+		def convert_to_id(val, obj):
+			if val[0] != '$':
+				expansion.append(macros.set(val, macros.objective, val))
+				return '$' + val, macros.objective
+			else:
+				return val, obj
+
+		def get_value():
+			val = stack.pop()
+			# print val, type(val)
+			if type(val) == type(''):
+				return val, macros.objective
+			else:
+				return val['selector'], val.get('objective', macros.objective)
+			
+		
 		while postfix_stack:
 			
 			num += 1
-			tmp_prefix = "${}_expr_{}_".format(program_prefix, self.id)
+			tmp_name = tmp_prefix + str(num)
+			# print tmp_name
 			
 			e = postfix_stack.pop()
 			# print "found", e
@@ -76,32 +94,25 @@ class ExpressionNode(Node):
 				expansion.append(e.expand())
 				expansion.append(macros.operation(
 						'=', tmp_name[1:], macros.objective, result_score, macros.objective))
-				stack.append(tmp_name)
-			elif e in "+-*/%" or e in ('<=', '==', '>=', '<', '>'):
-
-				def convert_to_id(val):
-					if val[0] != '$':
-						expansion.append(macros.set(val, macros.objective, val))
-						return '$' + val
-					else:
-						return val
+				stack.append({'selector':tmp_name,'objective':macros.objective})
+			elif e in ('+', '-', '*', '/', '%', '<=', '==', '>=', '<', '>'):
 
 				# print "before: ", stack
-				val1 = stack.pop()
-				val2 = stack.pop()
+				val1, obj1 = get_value()
+				val2, obj2 = get_value()
 				
 				if val1[0] != '$' and val2[0] != '$':
 					stack.append(str(int(eval(val1 + ' ' + e + ' ' + val2))))
 				else:
-					val1 = convert_to_id(val1)
-					val2 = convert_to_id(val2)
+					val1, obj1 = convert_to_id(val1, obj1)
+					val2, obj2 = convert_to_id(val2, obj2)
 					if e in "+-*/%":
 						expansion.append(macros.operation(
-								'=', tmp_name[1:], macros.objective, val1[1:], macros.objective))
+								'=', tmp_name[1:], macros.objective, val1[1:], obj1))
 						expansion.append(macros.operation(
-								e + '=', tmp_name[1:], macros.objective, val2[1:], macros.objective))
+								e + '=', tmp_name[1:], macros.objective, val2[1:], obj2))
 
-						stack.append(tmp_name)
+						stack.append({'selector':tmp_name,'objective':macros.objective})
 					elif e in ('<=', '==', '>=', '<', '>'):
 						cmp_map = {
 							'<': ('*', '-1'),
@@ -111,66 +122,65 @@ class ExpressionNode(Node):
 							'==': ('0', '0')
 						}
 						expansion.append(macros.operation(
-								'=', tmp_name[1:], macros.objective, val1[1:], macros.objective))
+								'=', tmp_name[1:], macros.objective, val1[1:], obj1))
 						expansion.append(macros.operation(
-								'-=', tmp_name[1:], macros.objective, val2[1:], macros.objective))
+								'-=', tmp_name[1:], macros.objective, val2[1:], obj2))
 						expansion.append(macros.cmp(
 								tmp_name[1:], macros.objective, *cmp_map[e]))
 						expansion.append("C scoreboard players set {} {} 1".format(tmp_name[1:], macros.objective))
 						expansion.append("U testforblock ~ ~ ~-2 minecraft:chain_command_block 3 {SuccessCount:0}")
 						expansion.append("C scoreboard players set {} {} 0".format(tmp_name[1:], macros.objective))
-						stack.append(tmp_name)
+						stack.append({'selector':tmp_name,'objective':macros.objective})
 			elif e == '!=':
-				val1 = stack.pop()
-				val2 = stack.pop()
+				val1, obj1 = get_value()
+				val2, obj2 = get_value()
 				# != is equivalent to (val1 == val2) == 0
 				postfix_stack.append('==')
 				postfix_stack.append('==')
-				postfix_stack.append(val1)
-				postfix_stack.append(val2)
+				postfix_stack.append({'selector':val1,'objective':obj1})
+				postfix_stack.append({'selector':val2,'objective':obj2})
 				postfix_stack.append('0')
 			elif e == 'not':
-				val = stack.pop()
+				val, obj = get_value()
 				postfix_stack.append('==') 
-				postfix_stack.append(val)
+				postfix_stack.append({'selector':val,'objective':obj})
 				postfix_stack.append('0')
 			elif e in ('and', 'or'):
-				val1 = stack.pop()
-				val2 = stack.pop()
+				val1, obj1 = get_value()
+				val2, obj2 = get_value()
 				
 				if val1[0] != '$' and val2[0] != '$':
 					stack.append(str(int(bool(eval(val1 + ' ' + e + ' ' + val2)))))
 				else:
-					val1 = convert_to_id(val1)
-					val2 = convert_to_id(val2)
+					val1, obj1 = convert_to_id(val1, obj1)
+					val2, obj2 = convert_to_id(val2, obj2)
 					
-					expansion.append(macros.bool_of(val1[1:], macros.objective, tmp_name[1:] + "_L", macros.objective))
-					expansion.append(macros.bool_of(val2[1:], macros.objective, tmp_name[1:] + "_R", macros.objective))
+					expansion.append(macros.bool_of(val1[1:], obj1, tmp_name[1:] + "_L", macros.objective))
+					expansion.append(macros.bool_of(val2[1:], obj2, tmp_name[1:] + "_R", macros.objective))
 					if e == 'and':
 						# and is equivalant to bool(val1) + bool(val2) == 2
 						postfix_stack.append('==')
 						postfix_stack.append('+')
-						postfix_stack.append(tmp_name + "_L")
-						postfix_stack.append(tmp_name + "_R")
+						postfix_stack.append({'selector':tmp_name + "_L",'objective':macros.objective})
+						postfix_stack.append({'selector':tmp_name + "_R",'objective':macros.objective})
 						postfix_stack.append('2')
 					elif e == 'or':
 						# or is equivalant to bool(val1) + bool(val2) >= 1
 						postfix_stack.append('>=')
 						postfix_stack.append('+')
-						postfix_stack.append(tmp_name + "_L")
-						postfix_stack.append(tmp_name + "_R")
+						postfix_stack.append({'selector':tmp_name + "_L",'objective':macros.objective})
+						postfix_stack.append({'selector':tmp_name + "_R",'objective':macros.objective})
 						postfix_stack.append('1')
-			else: # is_const(e)
+			else: #is a value
 				stack.append(e)
 
 		#FIXME: this seems too complex, probably a better way..
 		final_val = stack[0]
-		if final_val[0] == '$' and (type(postfix_expr[0]) in [MacroNode, CommandNode] or len(postfix_expr) > 1):
+		if type(final_val) == type({}):
+			final_val, obj = get_value()
+		if final_val[0] == '$':
 			expansion.append(macros.operation(
-				'=', result_score, macros.objective, tmp_name[1:], macros.objective))
-		elif final_val[0] == '$' and len(postfix_expr) == 1:
-			expansion.append(macros.operation(
-				'=', result_score, macros.objective, postfix_expr[0][1:], macros.objective))
+				'=', result_score, macros.objective, final_val[1:], obj))
 		else: #only a number remains
 			expansion.append(macros.set(result_score, macros.objective, final_val))
 			
@@ -180,13 +190,10 @@ class ExpressionNode(Node):
 
 ExpressionNode.count = 0
 
-
-
-
 class AssignNode(Node):
 	def __init__(self, var, operator, expression):
 		super(AssignNode, self).__init__("assign")
-		self.var = var.strip('$')
+		self.var = var
 		self.operator = operator
 		self.expression = expression
 		#print ("Expression: {}".format(expression))
@@ -194,7 +201,7 @@ class AssignNode(Node):
 	def expand(self):
 		# print "expanding assign"
 		# print "expression: {}".format(self.expression.expand())
-		assign_tmp = macros.operation(self.operator, self.var, macros.objective, result_score, macros.objective)
+		assign_tmp = macros.operation(self.operator, self.var['selector'].strip('$'), self.var.get('objective', macros.objective), result_score, macros.objective)
 		return "\n".join([
 			str(self.expression.expand()),
 			assign_tmp
