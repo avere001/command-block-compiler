@@ -26,6 +26,10 @@
 [] create result_of macro()
 [] allow selectors to be used in place of variable names
 [] assertion
+[] change expression evaluation method. current method is too complex.
+    -- perhaps as an AST of BinOp, UnaryOp, CommandNode, and MacroNode without flattening
+[] move tmp vars to compiler_objective
+[] chunkloading
 [+] change endif, endwhile, etc, to just end
 [+] and, or
 [+] !=
