@@ -1,4 +1,5 @@
 Minecraft Command Block Compiler
+-------------------------------
 
 WARNING: This code does not currently work.
 
