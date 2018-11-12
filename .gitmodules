@@ -1,0 +1,6 @@
+[submodule "werewolf"]
+	path = werewolf
+	url = ./examples/werewolf/
+[submodule "examples/werewolf"]
+	path = examples/werewolf
+	url = ./examples/werewolf/

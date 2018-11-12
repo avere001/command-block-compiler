@@ -76,7 +76,7 @@ def gen_size_tag(blocks):
 	# 	print "Too large of block! ({})".format([bc for bc in blocks if len(bc) == z])
 	size_tag = TAG_List(name=u"size", type=TAG_Int)
 	# size_tag.tags.extend(map(TAG_Int, [x,1,z]))
-	size_tag.tags.extend(map(TAG_Int, [32,32,32]))
+	size_tag.tags.extend(map(TAG_Int, [min(x,32),1,min(z,32)]))
 	return size_tag
 
 
@@ -108,7 +108,8 @@ def gen_command_block_structure(blocks, stands, file_name):
 		tag_list_tag.tags.append(TAG_String(stand["name"]))
 		nbt_tag.tags.append(tag_list_tag)
 		nbt_tag.tags.append(TAG_String(name="CustomName", value=stand["name"]))
-		nbt_tag.tags.append(TAG_Byte(name="CustomNameVisible", value=1))		
+		nbt_tag.tags.append(TAG_Byte(name="CustomNameVisible", value=0))
+		nbt_tag.tags.append(TAG_Byte(name="Marker", value=1))		
 
 		#position
 		blockPos_tag = TAG_List(name=u"blockPos", type=TAG_Int)
@@ -148,11 +149,11 @@ def gen_command_block_structure(blocks, stands, file_name):
 	for i, blocks_ in enumerate(blocks):
 		for j, block in enumerate(blocks_):
 			if block.get("type", None) == "impulse":
-				blocks_tag.tags.append(CommandBlock(i, 1, j, IMPULSE,
+				blocks_tag.tags.append(CommandBlock(i, 0, j, IMPULSE,
 					Command=block["command"]).convert_to_tag())
 			if block.get("type", None) == "chain":
 				type_ = CONDITIONAL if block.get("conditional", False) else UNCONDITIONAL
-				blocks_tag.tags.append(CommandBlock(i, 1, j, type_,
+				blocks_tag.tags.append(CommandBlock(i, 0, j, type_,
 						Command=block["command"],
 						auto=1).convert_to_tag())
 
@@ -273,7 +274,7 @@ def assemble(file_name):
 	stands = []
 	for i, pair  in enumerate(assembly_dict.iteritems()):
 		label, lines = pair
-		stands.append({"name": label, "position": (i+0.5, 1, 0.5)})
+		stands.append({"name": label, "position": (i+0.5, 0, 0.5)})
 		block_row = [{"type":"impulse", "command": ""}]
 		for line in lines:
 			conditionality = line[0] == "C"

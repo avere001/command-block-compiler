@@ -1,0 +1,25 @@
+.CL_BEGIN
+
+
+U summon ArmorStand ~2 ~ ~-1 {CustomName:Deleter,NoGravity:1b,Marker:1b}
+U tellraw @p ["",{"text":"Clearing.."}]
+jmp CL_WC_0
+.CL_WC_0
+U scoreboard players set CL_result vars 0
+Uexecute @e[name=Deleter] ~ ~ ~ testforblock ~ ~ ~ command_block
+C scoreboard players set CL_result vars 1
+U scoreboard players operation CL_expr_0_1 vars = CL_result vars
+U scoreboard players operation CL_result vars = CL_expr_0_1 vars
+U scoreboard players test CL_result vars 1 *
+jmp CL_WB_0 CL_WE_0
+.CL_WB_0
+U execute @e[name=Deleter] ~ ~ ~ fill ~ ~ ~ ~ ~ ~ air
+U execute @e[name=Deleter] ~ ~ ~ fill ~ ~ ~ ~ ~ ~125 air 0 replace chain_command_block
+U execute @e[name=Deleter] ~ ~ ~ kill @e[r=1,type=ArmorStand,name=!Deleter]
+U execute @e[name=Deleter] ~ ~ ~ tp @e[name=Deleter] ~1 ~ ~
+jmp CL_WC_0
+.CL_WE_0
+U kill @e[name=Deleter]
+U tellraw @e[r=25] ["",{"text":"Finished Clearing!"}]
+U kill @e[type=ArmorStand,r=20]
+U fill ~-5 ~ ~-4 ~5 ~ ~7 air
