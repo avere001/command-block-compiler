@@ -5,11 +5,12 @@ def print_tree(L, indent=""):
     adapted from https://mail.python.org/pipermail/tutor/2009-July/070178.html
     """
     for i in L:
-        if isinstance(i,str):
-            print indent, "Root:", i
+        if isinstance(i, str):
+            print(indent, "Root:", i)
         else:
-            print indent, '--Subtree: ', i
-            print_tree(i, indent+"    ")
+            print(indent, '--Subtree: ', i)
+            print_tree(i, indent + "    ")
+
 
 # adapted from Mu Mind's answer @ http://stackoverflow.com/questions/12472338/flattening-a-list-recursively
 def flatten(S):
