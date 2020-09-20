@@ -102,7 +102,7 @@ def gen_command_block_structure(blocks, stands, file_name):
         nbt_tag.name = "nbt"
 
         # type/gravity
-        nbt_tag.tags.append(TAG_String(name="id", value="ArmorStand"))
+        nbt_tag.tags.append(TAG_String(name="id", value="minecraft:armor_stand"))
         nbt_tag.tags.append(TAG_Byte(name="NoGravity", value=1))
 
         # name/tag
