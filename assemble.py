@@ -116,8 +116,8 @@ def gen_command_block_structure(blocks, stands, file_name):
         # position
         blockPos_tag = TAG_List(name="blockPos", type=TAG_Int)
         pos_tag = TAG_List(name="pos", type=TAG_Double)
-        blockPos_tag.tags.extend(list(map(TAG_Int, list(map(int, stand["position"])))))
-        pos_tag.tags.extend(list(map(TAG_Double, stand["position"])))
+        blockPos_tag.tags.extend([TAG_Int(int(x)) for x in stand["position"]])
+        pos_tag.tags.extend([TAG_Double(x) for x in stand["position"]])
 
         stand_tag.tags.append(nbt_tag)
         stand_tag.tags.append(blockPos_tag)
