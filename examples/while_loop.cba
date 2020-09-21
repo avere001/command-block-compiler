@@ -1,14 +1,14 @@
 # def jmp LABEL1 LABEL2
-# 	C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-# 	C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# 	C execute as @e[tag=LABEL1] at @s run blockdata ~ ~ ~ {auto:1b}
+# 	C execute as @e[tag=LABEL1] at @s run blockdata ~ ~ ~ {auto:0b}
 # 	U testforblock ~ ~ ~-3 minecraft:chain_command_block 3 {SuccessCount:0}
-# 	C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-# 	C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# 	C execute as @e[tag=LABEL2] at @s run blockdata ~ ~ ~ {auto:1b}
+# 	C execute as @e[tag=LABEL2] at @s run blockdata ~ ~ ~ {auto:0b}
 # end
 
 # def jmp LABEL
-# 	U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-# 	U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# 	U execute as @e[tag=LABEL] at @s run blockdata ~ ~ ~ {auto:1b}
+# 	U execute as @e[tag=LABEL] at @s run blockdata ~ ~ ~ {auto:0b}
 # end
 
 

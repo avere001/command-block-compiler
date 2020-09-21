@@ -127,7 +127,7 @@ class ExpressionNode(Node):
                         expansion.append(macros.cmp(
                             tmp_name[1:], macros.objective, *cmp_map[e]))
                         expansion.append("C scoreboard players set {} {} 1".format(tmp_name[1:], macros.objective))
-                        expansion.append("U testforblock ~ ~ ~-2 minecraft:chain_command_block 3 {SuccessCount:0}")
+                        expansion.append("U execute at @s if data block ~ ~ ~-2 {SuccessCount:0}")
                         expansion.append("C scoreboard players set {} {} 0".format(tmp_name[1:], macros.objective))
                         stack.append({'selector': tmp_name, 'objective': macros.objective})
             elif e == '!=':
@@ -183,7 +183,7 @@ class ExpressionNode(Node):
         else:  # only a number remains
             expansion.append(macros.set(result_score, macros.objective, final_val))
 
-        expansion.append(macros.cmp(result_score, macros.objective, '1', '*'))
+        expansion.append(macros.cmp(result_score, macros.objective, '1'))
 
         return "\n".join(expansion)
 

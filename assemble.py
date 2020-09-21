@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+import json
+from pathlib import Path
+
 from nbt.nbt import *
 from collections import OrderedDict
 import string
@@ -50,12 +54,13 @@ class CommandBlock:
         self.nbt_data.name = "nbt"
         self.nbt_data.tags.append(gen_tag(TAG_Byte, 'conditionMet', 0))
         self.nbt_data.tags.append(gen_tag(TAG_Byte, 'auto', 0))
-        self.nbt_data.tags.append(gen_tag(TAG_String, 'CustomName', '@'))
+        self.nbt_data.tags.append(gen_tag(TAG_String, 'CustomName', '{"text":"@"}'))
         self.nbt_data.tags.append(gen_tag(TAG_Byte, 'powered', 0))
         self.nbt_data.tags.append(gen_tag(TAG_String, 'Command', ''))
-        self.nbt_data.tags.append(gen_tag(TAG_String, 'id', 'Control'))
+        self.nbt_data.tags.append(gen_tag(TAG_String, 'id', 'minecraft:command_block'))
         self.nbt_data.tags.append(gen_tag(TAG_Int, 'SuccessCount', 0))
         self.nbt_data.tags.append(gen_tag(TAG_Byte, 'TrackOutput', 1))
+        self.nbt_data.tags.append(gen_tag(TAG_Byte, 'UpdateLastExecution', 1))
 
     # print(self.nbt_data.pretty_tree())
 
@@ -69,20 +74,13 @@ class CommandBlock:
 
 def gen_size_tag(blocks):
     x = len(blocks)
-    # y = x / 32
-    # x = x % 32
-    z = max(list(map(len, blocks)))
-    # if (y > 32):
-    # 	print "Too many conditionals!"
-    # if (z > 32):
-    # 	print "Too large of block! ({})".format([bc for bc in blocks if len(bc) == z])
+    z = max(len(x) for x in blocks)
     size_tag = TAG_List(name="size", type=TAG_Int)
-    # size_tag.tags.extend(map(TAG_Int, [x,1,z]))
-    size_tag.tags.extend(list(map(TAG_Int, [min(x, 32), 1, min(z, 32)])))
+    size_tag.tags += [TAG_Int(x), TAG_Int(1), TAG_Int(z)]
     return size_tag
 
 
-def gen_command_block_structure(blocks, stands, file_name):
+def gen_command_block_structure(blocks, stands, output_file_name):
     """
     Generate an nbt file with filled with blocks and entities
 
@@ -94,36 +92,7 @@ def gen_command_block_structure(blocks, stands, file_name):
 
     nbt_file = NBTFile()
 
-    # TODO: add armor stands
-    entities_tag = TAG_List(name="entities", type=TAG_Compound)
-    for stand in stands:
-        stand_tag = TAG_Compound()
-        nbt_tag = TAG_Compound()
-        nbt_tag.name = "nbt"
-
-        # type/gravity
-        nbt_tag.tags.append(TAG_String(name="id", value="minecraft:armor_stand"))
-        nbt_tag.tags.append(TAG_Byte(name="NoGravity", value=1))
-
-        # name/tag
-        tag_list_tag = TAG_List(name="Tags", type=TAG_String)
-        tag_list_tag.tags.append(TAG_String(stand["name"]))
-        nbt_tag.tags.append(tag_list_tag)
-        nbt_tag.tags.append(TAG_String(name="CustomName", value=stand["name"]))
-        nbt_tag.tags.append(TAG_Byte(name="CustomNameVisible", value=0))
-        nbt_tag.tags.append(TAG_Byte(name="Marker", value=1))
-
-        # position
-        blockPos_tag = TAG_List(name="blockPos", type=TAG_Int)
-        pos_tag = TAG_List(name="pos", type=TAG_Double)
-        blockPos_tag.tags.extend([TAG_Int(int(x)) for x in stand["position"]])
-        pos_tag.tags.extend([TAG_Double(x) for x in stand["position"]])
-
-        stand_tag.tags.append(nbt_tag)
-        stand_tag.tags.append(blockPos_tag)
-        stand_tag.tags.append(pos_tag)
-
-        entities_tag.tags.append(stand_tag)
+    entities_tag = generate_stands(stands)
 
     # Palettes
     # the nth entry is what u'blocks'->u''->u'state' refers to
@@ -150,6 +119,7 @@ def gen_command_block_structure(blocks, stands, file_name):
     blocks_tag = TAG_List(name="blocks", type=TAG_Compound)
     for i, blocks_ in enumerate(blocks):
         for j, block in enumerate(blocks_):
+            pass
             if block.get("type", None) == "impulse":
                 blocks_tag.tags.append(CommandBlock(i, 0, j, IMPULSE,
                                                     Command=block["command"]).convert_to_tag())
@@ -162,19 +132,52 @@ def gen_command_block_structure(blocks, stands, file_name):
     # [X, Y, Z] size of the structure
     size_tag = gen_size_tag(blocks)
 
-    author_tag = TAG_String("fetusdip", name="author")
-    version_tag = TAG_Int(1, name="version")
+    # https://minecraft.gamepedia.com/Data_version#.dat_and_.nbt_files
+    version_tag = TAG_Int(512, name="DataVersion")
 
     nbt_file.tags.append(size_tag)
     nbt_file.tags.append(entities_tag)
     nbt_file.tags.append(blocks_tag)
-    nbt_file.tags.append(author_tag)
     nbt_file.tags.append(palette_tag)
     nbt_file.tags.append(version_tag)
 
-    nbt_file.write_file(file_name)
+    nbt_file.write_file(output_file_name)
 
     return nbt_file
+
+
+def generate_stands(stands):
+    entities_tag = TAG_List(name="entities", type=TAG_Compound)
+    for stand in stands:
+        stand_tag = TAG_Compound()
+        nbt_tag = TAG_Compound()
+        nbt_tag.name = "nbt"
+
+        # type/gravity
+        nbt_tag.tags.append(TAG_String(name="id", value="minecraft:armor_stand"))
+        nbt_tag.tags.append(TAG_Byte(name="NoGravity", value=1))
+
+        # name/tag
+        tag_list_tag = TAG_List(name="Tags", type=TAG_String)
+        tag_list_tag.tags.append(TAG_String(stand["name"]))
+        nbt_tag.tags.append(tag_list_tag)
+        nbt_tag.tags.append(TAG_String(name="CustomName", value=json.dumps({'text': stand["name"]})))
+        nbt_tag.tags.append(TAG_Byte(name="CustomNameVisible", value=1))
+        nbt_tag.tags.append(TAG_Byte(name="Marker", value=1))
+
+        # position
+        blockPos_tag = TAG_List(name="blockPos", type=TAG_Int)
+        blockPos_tag.tags.extend([TAG_Int(int(x)) for x in stand["position"]])
+
+        pos_tag = TAG_List(name="pos", type=TAG_Double)
+        pos_tag.tags.extend([TAG_Double(x) for x in stand["position"]])
+
+        stand_tag.tags.append(nbt_tag)
+        stand_tag.tags.append(blockPos_tag)
+        stand_tag.tags.append(pos_tag)
+
+        entities_tag.tags.append(stand_tag)
+    return entities_tag
 
 
 def parse_mc_assembly(file):
@@ -191,44 +194,39 @@ def parse_mc_assembly(file):
     assembly_dict = OrderedDict()
     current_label = None
 
-    for line_number, line in enumerate(file, start=1):
+    for line_number, line in enumerate(file.splitlines(), start=1):
 
         line = line.strip()
 
-        # TODO: finish jmp
         if line.startswith("jmp"):
             split_line = line.split()
 
             if len(split_line) == 2:
                 lines = [
-                    "U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}",
-                    "U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}"
+                    "U execute as @e[tag=LABEL] at @s run data merge block ~ ~ ~ {auto:1b}",
+                    "U execute as @e[tag=LABEL] at @s run data merge block ~ ~ ~ {auto:0b}"
                 ]
 
                 for i in range(len(lines)):
                     lines[i] = lines[i].replace("LABEL", split_line[1])
 
-
             elif len(split_line) == 3:
                 lines = [
-                    "C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}",
-                    "C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}",
-                    "U testforblock ~ ~ ~-3 minecraft:chain_command_block 3 {SuccessCount:0}",
-                    "C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}",
-                    "C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}"
+                    "C execute as @e[tag=LABEL1] at @s run data merge block ~ ~ ~ {auto:1b}",
+                    "C execute as @e[tag=LABEL1] at @s run data merge block ~ ~ ~ {auto:0b}",
+                    "U execute if data block ~ ~ ~-3 {SuccessCount:0}",
+                    "C execute as @e[tag=LABEL2] at @s run data merge block ~ ~ ~ {auto:1b}",
+                    "C execute as @e[tag=LABEL2] at @s run data merge block ~ ~ ~ {auto:0b}"
                 ]
 
                 for i in range(len(lines)):
                     lines[i] = lines[i].replace("LABEL1", split_line[1])
                     lines[i] = lines[i].replace("LABEL2", split_line[2])
 
-
             else:
                 raise SyntaxError("line {}: jmp: jmp takes 1 or 2 arguments".format(line_number))
 
             assembly_dict[current_label] += lines
-
-
 
         # parse labels
         elif line.startswith("."):
@@ -251,26 +249,8 @@ def parse_mc_assembly(file):
     return assembly_dict
 
 
-def main():
-    # nbt_file = NBTFile(u"test_structure.nbt", u"rb")
-    # print(nbt_file.pretty_tree())
-
-    cba_name = "compiled_example.cba"
-    nbt_name = cba_name.rsplit(".")[0] + ".nbt"
-    mc_dir = "C:/Users/Adam/AppData/Roaming/.minecraft/saves/Command Block Compiler Testzone/structures/"
-
-    with open(cba_name) as f:
-        assembly_dict = parse_mc_assembly(f)
-
-    print(assemble(cba_name).pretty_tree())
-
-    from shutil import copyfile
-    copyfile(nbt_name, mc_dir + nbt_name)
-
-
-def assemble(file_name):
-    with open(file_name) as f:
-        assembly_dict = parse_mc_assembly(f)
+def assemble(assembly, output_file_name):
+    assembly_dict = parse_mc_assembly(assembly)
 
     block_cols = []
     stands = []
@@ -284,9 +264,15 @@ def assemble(file_name):
             block_row.append({"type": "chain", "command": line, "conditional": conditionality})
         block_cols.append(block_row)
 
-    return gen_command_block_structure(block_cols, stands, file_name.rsplit(".")[0] + ".nbt")
+    return gen_command_block_structure(block_cols, stands, output_file_name)
 
 
 if __name__ == '__main__':
-    main()
-# os.remove()
+    if len(sys.argv) != 3:
+        print(f'usage: {sys.argv[0]} <input_file> <output_file>')
+        exit(1)
+
+    input_file_name = sys.argv[1]
+    output_file_name = sys.argv[2]
+
+    assemble(Path(input_file_name).read_text(), output_file_name)

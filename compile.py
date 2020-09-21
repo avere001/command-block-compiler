@@ -1,5 +1,14 @@
+#!/usr/bin/env python
+from pathlib import Path
+
 from nodes import *
 from ply.lex import TOKEN
+
+import sys
+import assemble
+
+import ply.lex as lex
+import ply.yacc as yacc
 
 """
 This module scans and parses cbc scripts
@@ -120,15 +129,12 @@ def t_error(t):
 Macros
 """
 t_funcy_INITIAL_LPAREN = r'\('
-# t_funcy_ARG = r'[^,()][^,()]*'
-# t_funcy_ARG = r'"[^\"]*"|\'[^\']*\''
-# t_funcy_ARG = r"'(\'|[^'])*'"
 double_quote_string = r'\"([^\\\n]|(\\.))*?\"'
 single_quote_string = r'\'([^\\\n]|(\\.))*?\''
-argument = r'(' + double_quote_string + r')' + r'|' + \
-           r'(' + single_quote_string + r')' + r'|' + \
-           r'(' + t_ID + r')' + r'|' + \
-           r'(' + r'~?' + non_zero_num + r')'
+argument = fr'({double_quote_string})|' \
+           fr'({single_quote_string})|' \
+           fr'({t_ID})|' \
+           fr'(~?{non_zero_num})'
 
 
 # string constant recognition from PLY ansi C example
@@ -171,15 +177,15 @@ precedence = (
 
 
 def p_start(t):
-    'start : statements'
+    """start : statements"""
     t[0] = t[1]
 
 
 def p_statements(t):
-    '''
+    """
     statements : statements statement
                | statement
-    '''
+    """
     if len(t) == 2:
         t[0] = [t[1]]
     else:
@@ -187,41 +193,41 @@ def p_statements(t):
 
 
 def p_statement(t):
-    '''statement : command
+    """statement : command
                  | while_statement
                  | if_statement
                  | assign_statement
                  | func
-    '''
+    """
     t[0] = t[1]
 
 
 def p_assign_statement(t):
-    '''
+    """
     assign_statement : id ASSIGN root_expression
                      | id ADD_ASSIGN root_expression
                      | id SUB_ASSIGN root_expression
                      | id DIV_ASSIGN root_expression
                      | id MUL_ASSIGN root_expression
                      | id MOD_ASSIGN root_expression
-    '''
+    """
     # print "assign_statement"
     t[0] = AssignNode(t[1], t[2], t[3])
 
 
 def p_root_expression(t):
-    'root_expression : expression'
+    """root_expression : expression"""
     t[0] = ExpressionNode(t[1])
 
 
 def p_not_expression(t):
-    '''expression : NOT expression
-    '''
+    """expression : NOT expression
+    """
     t[0] = [t[1], t[2]]
 
 
 def p_expression(t):
-    '''expression : expression ADD expression %prec ADD
+    """expression : expression ADD expression %prec ADD
                   | expression SUB expression %prec SUB
                   | expression MUL expression %prec MUL
                   | expression DIV expression %prec DIV
@@ -239,7 +245,7 @@ def p_expression(t):
                   | const
                   | command
                   | func
-    '''
+    """
     if len(t) == 2:
         if type(t[1]) in [MacroNode, CommandNode]:
             t[1].context = "expression"
@@ -252,7 +258,7 @@ def p_expression(t):
 
 
 def p_id(t):
-    ''' id : ID '''
+    """ id : ID """
     ident = t[1]
     if ident[0] == '@':
         ident = '$' + ident
@@ -264,26 +270,26 @@ def p_id(t):
 
 
 def p_const(t):
-    '''const : NUM
+    """const : NUM
              | TRUE
-             | FALSE'''
+             | FALSE"""
     t[0] = {'true': '1', 'false': '0'}.get(t[1], t[1])
 
 
 def p_func(t):
-    '''func : FUNC_ID LPAREN args RPAREN'''
+    """func : FUNC_ID LPAREN args RPAREN"""
     t[0] = MacroNode(t[1], t[3])
 
 
 def p_command(t):
-    '''command : COMMAND'''
+    """command : COMMAND"""
     t[0] = CommandNode(t[1][1:-1])
 
 
 def p_args(t):
-    '''args : arg
+    """args : arg
             | args COMMA arg
-    '''
+    """
     if len(t) == 2:
         t[0] = [t[1]]
     else:
@@ -292,23 +298,23 @@ def p_args(t):
 
 # FIXME: don't use a single generic terminal
 def p_arg(t):
-    '''arg : ARG'''
+    """arg : ARG"""
     t[0] = t[1]
     # print "found ARG: {}".format(t[0])
 
 
 def p_if_statement(t):
-    'if_statement : IF root_expression THEN statements END'
+    """if_statement : IF root_expression THEN statements END"""
     t[0] = IfNode(condition=t[2], body=t[4])
 
 
 def p_if_else_statement(t):
-    'if_statement : IF root_expression THEN statements ELSE statements END'
+    """if_statement : IF root_expression THEN statements ELSE statements END"""
     t[0] = IfNode(condition=t[2], body=t[4], else_body=t[6])
 
 
 def p_while_statement(t):
-    'while_statement : WHILE root_expression DO statements END'
+    """while_statement : WHILE root_expression DO statements END"""
     t[0] = WhileNode(t[2], t[4])
 
 
@@ -319,81 +325,42 @@ def p_error(t):
         print("Syntax error: Unexpected end of input (Perhaps a missing 'end')")
 
 
-def compile(input_file, compiled_name):
+def compile_cbc(input_file):
     with open(input_file) as f:
         ast = Node("root", parser.parse(f.read()))
 
-    with open(compiled_name + ".cba", "w") as f:
-        f.write(ast.expand())
-
-    return compiled_name + ".cba"
+    return ast.expand()
 
 
-def concat_assembly(file_names, output_file_name):
-    file_contents = []
-    file_headers = []
-    for file_name in file_names:
-        with open(file_name) as i_file:
-            file_content = i_file.read()
-            header = file_content.split('\n')[0]
+def concat_assembly(assemblies):
+    assembly_headers = [x.splitlines()[0] for x in assemblies]
+    new_assembly_parts = [f'.MIXED_{assembly_headers[0][1:]}']
 
-            file_contents.append(file_content)
-            file_headers.append(header)
+    for header in assembly_headers:
+        new_assembly_parts.append(f'jmp {header[1:]}')
+    for body in assemblies:
+        new_assembly_parts.append(body)
 
-    with open(output_file_name, 'w') as o_file:
-        # print file_headers
-        print('.MIXED_{}'.format(file_headers[0][1:]), file=o_file)  # get rid of .
-        for header in file_headers:
-            print('jmp {}'.format(header[1:]), file=o_file)  # get rid of . in header
-        for file_content in file_contents:
-            print(file_content, file=o_file)
-
-    return output_file_name
+    return '\n'.join(new_assembly_parts)
 
 
 if __name__ == '__main__':
 
-    import sys
-
     if len(sys.argv) != 3:
         print("Incorrect number of arguments")
-        print("usage:   {} <input_file> <structure_name>".format(sys.argv[0]))
-        print("example: {} example.cbc example_structure".format(sys.argv[0]))
+        print(f"usage:   {sys.argv[0]} <input_file> <structure_name>")
+        print(f"example: {sys.argv[0]} example.cbc example_structure")
         exit(1)
 
-    input_file = sys.argv[1]
-    compiled_name = sys.argv[2]
+    input_file_name = sys.argv[1]
+    output_file_name = sys.argv[2]
 
-    import ply.lex as lex
-    import ply.yacc as yacc
+    lexer = lex.lex()
+    parser = yacc.yacc(debug=1)
 
-    # lexer = lex.lex()
-    # with open(input_file) as f:
-    #     lex.input(f.read())
-    #     while True:
-    #         tok = lexer.token()
-    #         if not tok: 
-    #             break      # No more input
-    #         print(tok)
+    print(f"compiling {input_file_name}")
+    assembly_file = compile_cbc(input_file_name)
+    Path(input_file_name.rsplit('.', maxsplit=1)[0] + '.cba').write_text(assembly_file)
 
-    macros.include(input_file)
-
-    assembly_files = []
-    while macros.includes:
-        lexer = lex.lex()
-        parser = yacc.yacc(debug=1)
-        import os
-
-        curr_file = macros.includes.pop()
-        print("compiling {}".format(curr_file))
-        assembly_files.append(compile(curr_file, curr_file))
-
-    concat_assembly(assembly_files, compiled_name + ".cba")
-
-    import assemble
-
-    assemble.assemble(compiled_name + ".cba")
-
-    from shutil import copyfile
-
-    copyfile(compiled_name + ".nbt", "/home/ubuntu/workspace/structures/" + compiled_name + ".nbt")
+    assembly_content = concat_assembly([assembly_file])
+    assemble.assemble(assembly_content, output_file_name).write_file()

@@ -1,25 +1,25 @@
 # note jmp TAG_NAME is equivalent to
-# C /execute @e[tag=TAG_NAME] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-# C /execute @e[tag=TAG_NAME] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# C /execute as @e[tag=TAG_NAME] at @s run blockdata ~ ~ ~ {auto:1b}
+# C /execute as @e[tag=TAG_NAME] at @s run blockdata ~ ~ ~ {auto:0b}
 
 U scoreboard players set i vars 0
 
-C /execute @e[tag=FOR_BEGIN] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-C /execute @e[tag=FOR_BEGIN] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+C /execute as @e[tag=FOR_BEGIN] at @s run blockdata ~ ~ ~ {auto:1b}
+C /execute as @e[tag=FOR_BEGIN] at @s run blockdata ~ ~ ~ {auto:0b}
 
 FOR_BEGIN:
 	#for compare/jmp
 	U scoreboard players test i vars 10 *
-	C /execute @e[tag=FOR_END] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-	C /execute @e[tag=FOR_END] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+	C /execute as @e[tag=FOR_END] at @s run blockdata ~ ~ ~ {auto:1b}
+	C /execute as @e[tag=FOR_END] at @s run blockdata ~ ~ ~ {auto:0b}
 
 	#for body
 	U say for_body
 
 	#for increment/loop
 	U scoreboard players add i vars 1
-	C /execute @e[tag=FOR_BEGIN] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-	C /execute @e[tag=FOR_BEGIN] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+	C /execute as @e[tag=FOR_BEGIN] at @s run blockdata ~ ~ ~ {auto:1b}
+	C /execute as @e[tag=FOR_BEGIN] at @s run blockdata ~ ~ ~ {auto:0b}
 FOR_END:
 
 

@@ -39,31 +39,6 @@ def set_prefix(prefix):
     nodes.result_score = "{}_result".format(prefix)
 
 
-includes = set([])
-
-
-def include(file_name):
-    """
-    include a program.
-
-    this program will be added to a list of files to also be compiled.
-    these files assembly outputs will be concatenated with the current program
-    """
-    import os
-    if include.call_count == 0:
-        file_path = os.path.realpath(file_name)
-        includes.add(file_path)
-        include.dir_path = os.path.dirname(file_path) + "/"
-    else:
-        includes.add(include.dir_path + file_name)
-
-    include.call_count += 1
-
-
-include.call_count = 0
-include.dir_path = ""
-
-
 ##################### argument validation #############
 def validate_coord(coord):
     new_coord = coord
@@ -91,9 +66,9 @@ def empty_team(teamname):
 
 
 def add_team(teamname):
-    if not teamname in teams:
+    if teamname not in teams:
         teams.append(teamname)
-    return 'scoreboard teams add {}'.format(teamname)
+    return f'team add {teamname}'
 
 
 ################## TP ##########################
@@ -128,8 +103,12 @@ def add(var, obj, val):
     return "U scoreboard players add {} {} {}".format(var, obj, val)
 
 
-def cmp(var, obj, min, max="*"):
-    return "U scoreboard players test {} {} {} {}".format(var, objective, min, max)
+def cmp(var, obj, min, max=None):
+    if not max:
+        range_ = str(min)
+    else:
+        range_ = f'{min}..{max}'
+    return f"U execute if score {var} {objective} matches {range_}"
 
 
 def lt(var1, obj1, var2, obj2):
@@ -144,7 +123,7 @@ def _exec(expression):
 def bool_of(var, obj, result_var, result_obj):
     return "\n".join([
         set(result_var, obj, '1'),
-        cmp(var, obj, '0', '0'),
+        cmp(var, obj, 0),
         "C scoreboard players set {} {} {}".format(result_var, result_obj, '0')
     ])
 

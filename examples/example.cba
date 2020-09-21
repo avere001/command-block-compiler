@@ -1,20 +1,20 @@
 #checkerboard pattern
 # def jmp LABEL1 LABEL2
-# 	C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-# 	C execute @e[tag=LABEL1] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# 	C execute as @e[tag=LABEL1] at @s run blockdata ~ ~ ~ {auto:1b}
+# 	C execute as @e[tag=LABEL1] at @s run blockdata ~ ~ ~ {auto:0b}
 # 	U testforblock ~ ~ ~-3 minecraft:chain_command_block 3 {SuccessCount:0}
-# 	C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-# 	C execute @e[tag=LABEL2] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# 	C execute as @e[tag=LABEL2] at @s run blockdata ~ ~ ~ {auto:1b}
+# 	C execute as @e[tag=LABEL2] at @s run blockdata ~ ~ ~ {auto:0b}
 # end
 
 # def jmp LABEL
-# 	U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:1b}
-# 	U execute @e[tag=LABEL] ~ ~ ~ blockdata ~ ~ ~ {auto:0b}
+# 	U execute as @e[tag=LABEL] at @s run blockdata ~ ~ ~ {auto:1b}
+# 	U execute as @e[tag=LABEL] at @s run blockdata ~ ~ ~ {auto:0b}
 # end
 
 .BEGIN
-U execute @e[tag=BEGIN] ~ ~ ~ summon ArmorStand ~ ~5 ~ {Tags:["triangle"],NoGravity:1}
-#U execute @e[tag=triangle] ~ ~ ~ setblock ~ ~ ~ wool 15
+U execute as @e[tag=BEGIN] at @s run summon minecraft:armor_stand ~ ~5 ~ {Tags:["triangle"],NoGravity:1}
+#U execute as @e[tag=triangle] at @s run setblock ~ ~ ~ wool 15
 
 U scoreboard players set i vars 0
 
@@ -36,12 +36,12 @@ jmp FOR_BEGIN
 		.INNER_FOR_BODY
 		
 		U scoreboard players set count vars 0
-		U execute @e[tag=triangle] ~ ~ ~ detect ~-1 ~ ~ wool 15 scoreboard players add count vars 1
-		U execute @e[tag=triangle] ~ ~ ~ detect ~ ~ ~-1 wool 15 scoreboard players add count vars 1
+		U execute as @e[tag=triangle] at @s run detect ~-1 ~ ~ wool 15 scoreboard players add count vars 1
+		U execute as @e[tag=triangle] at @s run detect ~ ~ ~-1 wool 15 scoreboard players add count vars 1
 		U scoreboard players test count vars 1 1
-		C execute @e[tag=triangle] ~ ~ ~ setblock ~ ~ ~ wool 15
+		C execute as @e[tag=triangle] at @s run setblock ~ ~ ~ wool 15
 		U testforblock ~ ~ ~-2 minecraft:chain_command_block 3 {SuccessCount:0}
-		C execute @e[tag=triangle] ~ ~ ~ setblock ~ ~ ~ wool 0
+		C execute as @e[tag=triangle] at @s run setblock ~ ~ ~ wool 0
 
 		U tp @e[tag=triangle] ~1 ~ ~
 	
@@ -50,7 +50,7 @@ jmp FOR_BEGIN
 	.INNER_FOR_END
 
 	U tp @e[tag=triangle] ~-16 ~ ~1
-	#U execute @e[tag=triangle] ~ ~ ~ setblock ~ ~ ~ wool 15
+	#U execute as @e[tag=triangle] at @s run setblock ~ ~ ~ wool 15
 
 	#for increment/loop
 	U scoreboard players add i vars 1

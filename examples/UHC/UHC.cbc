@@ -1,5 +1,3 @@
-include('dayloop')
-
 set_prefix('WW')
 set_objective('vars')
 
@@ -8,22 +6,23 @@ set_objective('vars')
 `scoreboard objectives add vars dummy`
 `scoreboard objectives add testing dummy`
 
-`scoreboard teams add alive`
-`scoreboard teams add dead`
+`team add alive`
+`team add dead`
+`team add werewolf`
+`team add lobby`
 
-`scoreboard teams option dead nametagVisibility never`
+# `scoreboard teams option dead nametagVisibility never`
 
 # `gamerule sendCommandFeedback false`
 `gamerule logAdminCommands false`
 
-# `kill @e[name=spawndummy]`
-if not `testfor @e[name=spawndummy]` then
+`kill @e[name=spawndummy]`
+if not `execute if entity @e[name=spawndummy]` then
     `tellraw @a ["",{"text":"Please Wait: finding suitable spawn point"}]`
-    `summon ArmorStand -1 256 -1 {CustomName:spawndummy,Invisible:1b,Invulnerable:1b,DisabledSlots:2039583,Marker:1}`
-    while `execute @e[name=spawndummy] ~ ~ ~ testforblock ~ ~-1 ~ minecraft:air` do `` end
+    `summon minecraft:armor_stand -1 256 -1 {CustomName:'{"text":"spawndummy"}',Invisible:1b,Invulnerable:1b,DisabledSlots:2039583,Marker:0}`
+    while `execute as @e[name=spawndummy] at @s if block ~ ~-1 ~ minecraft:air` do `` end
     `tellraw @a ["",{"text":"Spawn point found!"}]`
 end
-while not $dayloopready do `` end
 
 
 
@@ -35,70 +34,71 @@ while true do
     #####################Setup/Lobby########################
     
     $isday = true
-    `gamemode a @a`
+    `gamemode adventure @a`
     
-    `tp @a @e[name=spawndummy]`
-    `execute @e[name=spawndummy] ~ ~ ~ worldborder center ~ ~`
-    `worldborder set 10`
+    `tp @a @e[name=spawndummy,limit=1]`
+    `execute as @e[name=spawndummy] at @s run worldborder center ~ ~`
+#    `worldborder set 10`
     
-    `execute @e[name=spawndummy] ~ ~ ~ spawnpoint @a ~ ~ ~`
-    `execute @e[name=spawndummy] ~ ~ ~ setworldspawn ~ ~ ~`
+    `execute as @e[name=spawndummy] at @s run spawnpoint @a ~ ~ ~`
+    `execute as @e[name=spawndummy] at @s run setworldspawn ~ ~ ~`
     `gamerule spawnRadius 0`
     
-    `execute @e[name=spawndummy] ~ ~ ~ setblock ~ ~1 ~ minecraft:standing_sign`
+    `execute as @e[name=spawndummy] at @s run setblock ~ ~1 ~ minecraft:oak_sign`
     
     `time set 0`
     `gamerule doDaylightCycle false`
     
     `scoreboard objectives remove start_trigger`
-    `scoreboard objectives add start_trigger trigger Ready`
+    `scoreboard objectives add start_trigger trigger`
     `scoreboard objectives setdisplay sidebar start_trigger`
     `scoreboard players enable @a start_trigger`
-    
-    `scoreboard teams add lobby`
-    
+
     @a[team=lobby]:start_trigger = 0
-    `execute @e[name=spawndummy] ~ ~ ~  blockdata ~ ~1 ~ {Text1:"{\"text\":\"Right Click\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/trigger start_trigger set 1\"}}",Text2:"{\"text\":\"to\"}",Text3:"{\"text\":\"Ready Up!\"}"}`
+    `execute as @e[name=spawndummy] at @s run data merge block ~ ~1 ~ {Text1:'{"text":"Right Click","clickEvent":{"action":"run_command","value":"/trigger start_trigger set 1"}}',Text2:'{"text":"to"}',Text3:'{"text":"Ready Up!"}'}`
     # wait for sign to be pressed
-    while `scoreboard players test @a start_trigger 0 0` do
-        `gamemode a @a[m=s,team=!lobby]`
+    while `execute if score @p start_trigger matches 0` do
+        `gamemode adventure @a[gamemode=survival,team=!lobby]`
         `scoreboard players enable @a start_trigger`
         `weather clear 1000000`
-        `effect @a[m=a] minecraft:saturation 9999 0`
-        `effect @a[m=a] minecraft:instant_health 1 20`
-        `clear @a[m=a]`
+        `effect give @a[gamemode=adventure] minecraft:saturation 9999 0`
+        `effect give @a[gamemode=adventure] minecraft:instant_health 1 20`
+        `clear @a[gamemode=adventure]`
         `time set 0`
-        if `testfor @a[team=!lobby]` then
+        if `execute if entity @a[team=!lobby]` then
             @a[team=!lobby]:start_trigger = 0
-            `tp @a[team=!lobby] @e[name=spawndummy]`
-            `scoreboard teams join lobby @a`
+            `tp @a[team=!lobby] @e[name=spawndummy,limit=1]`
+            `team join lobby @a`
         end
     end
     
     `gamerule doDaylightCycle true`
-    `effect @a clear`
-    `execute @e[name=spawndummy] ~ ~ ~ setblock ~ ~1 ~ air`
+    `effect clear @a`
+    `execute as @e[name=spawndummy] at @s run setblock ~ ~1 ~ air`
     `difficulty easy`
-    `gamemode s @a`
+    `gamemode survival @a`
     
-    `scoreboard objectives add health health Health`
+    `scoreboard objectives add health health`
     
     `time set 0`
     `worldborder set 300`
     
-    `scoreboard teams join alive @a`
+    `team join alive @a`
     ##################################################
     
     ##################GameLoop########################
     
     
     # wait for all players to respawn
-    while `scoreboard players test @p[team=werewolf] health 0 0` do `` end
+    $gameover = 0
+    while not `execute if score @p[team=werewolf] health matches 0` do
+        ``
+    end
     
     # display gameover message
     `title @a times 10 100 10`
     if $living_werewolf then
-        #the wereolf won
+        #the werewolf won
         `title @a title ["",{"text":"The Werewolf Wins!","color":"dark_red"}]`
     else
         #the civilians won
@@ -110,10 +110,10 @@ while true do
     end
     
     `clear @a`
-    `effect @a clear`
+    `effect clear @a`
     
-    `scoreboard teams empty werewolf`
-    `scoreboard teams empty civilians`
+    `team empty werewolf`
+    `team empty civilians`
     
     `scoreboard objectives remove deaths`
     
