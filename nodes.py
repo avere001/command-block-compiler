@@ -3,7 +3,6 @@ program_prefix = "EX"
 import macros
 
 from tree_util import flatten
-import ast
 
 # score in which the result of an expression is stored
 result_score = "{}_result".format(program_prefix)
@@ -16,8 +15,8 @@ class Node(object):
 
     def expand(self):
         """
-		Convert node to CB assembly
-		"""
+        Convert node to CB assembly
+        """
         expanded_nodes = Node.expand_list(self.content)
         return "\n".join([
             ".{}_BEGIN".format(program_prefix),
@@ -39,26 +38,28 @@ class EmptyNode(Node):
 
     def expand(self):
         """
-		print the content for debugging
-		"""
+        print the content for debugging
+        """
         # print(str(content))
         return ''
 
 
 class ExpressionNode(Node):
+    total_nodes = 0
+
     def __init__(self, expr_tree):
-        super(ExpressionNode, self).__init__("expression")
-        self.id = ExpressionNode.count
-        ExpressionNode.count += 1
+        super().__init__("expression")
         self.expr_tree = expr_tree
+
+        self.id = self.total_nodes
+        self.total_nodes += 1
 
     def expand(self):
 
-        # print flatten(self.expr_tree)
         stack = []
         num = 0
         tmp_prefix = "${}_expr_{}_".format(program_prefix, self.id)
-        expansion = []
+        assembly_lines = []
 
         # evaluate postfix expression
         postfix_stack = flatten(self.expr_tree)
@@ -68,7 +69,7 @@ class ExpressionNode(Node):
 
         def convert_to_id(val, obj):
             if val[0] != '$':
-                expansion.append(macros.set(val, macros.objective, val))
+                assembly_lines.append(macros.set(val, macros.objective, val))
                 return '$' + val, macros.objective
             else:
                 return val, obj
@@ -90,8 +91,8 @@ class ExpressionNode(Node):
             e = postfix_stack.pop()
             # print "found", e
             if type(e) in [MacroNode, CommandNode]:
-                expansion.append(e.expand())
-                expansion.append(macros.operation(
+                assembly_lines.append(e.expand())
+                assembly_lines.append(macros.operation(
                     '=', tmp_name[1:], macros.objective, result_score, macros.objective))
                 stack.append({'selector': tmp_name, 'objective': macros.objective})
             elif e in ('+', '-', '*', '/', '%', '<=', '==', '>=', '<', '>'):
@@ -106,9 +107,9 @@ class ExpressionNode(Node):
                     val1, obj1 = convert_to_id(val1, obj1)
                     val2, obj2 = convert_to_id(val2, obj2)
                     if e in "+-*/%":
-                        expansion.append(macros.operation(
+                        assembly_lines.append(macros.operation(
                             '=', tmp_name[1:], macros.objective, val1[1:], obj1))
-                        expansion.append(macros.operation(
+                        assembly_lines.append(macros.operation(
                             e + '=', tmp_name[1:], macros.objective, val2[1:], obj2))
 
                         stack.append({'selector': tmp_name, 'objective': macros.objective})
@@ -118,9 +119,9 @@ class ExpressionNode(Node):
                             # Mojang decided that two equal signs were too many
                             mc_operator = '='
 
-                        expansion.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
-                        expansion.append(f'U execute if score {val1[1:]} {obj1} {mc_operator} {val2[1:]} {obj2} '
-                                         f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
+                        assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
+                        assembly_lines.append(f'U execute if score {val1[1:]} {obj1} {mc_operator} {val2[1:]} {obj2} '
+                                              f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
                         stack.append({'selector': tmp_name, 'objective': macros.objective})
             elif e == '!=':
                 val1, obj1 = get_value()
@@ -146,8 +147,8 @@ class ExpressionNode(Node):
                     val1, obj1 = convert_to_id(val1, obj1)
                     val2, obj2 = convert_to_id(val2, obj2)
 
-                    expansion.append(macros.bool_of(val1[1:], obj1, tmp_name[1:] + "_L", macros.objective))
-                    expansion.append(macros.bool_of(val2[1:], obj2, tmp_name[1:] + "_R", macros.objective))
+                    assembly_lines.append(macros.bool_of(val1[1:], obj1, tmp_name[1:] + "_L", macros.objective))
+                    assembly_lines.append(macros.bool_of(val2[1:], obj2, tmp_name[1:] + "_R", macros.objective))
                     if e == 'and':
                         # and is equivalant to bool(val1) + bool(val2) == 2
                         postfix_stack.append('==')
@@ -170,17 +171,14 @@ class ExpressionNode(Node):
         if type(final_val) == type({}):
             final_val, obj = get_value()
         if final_val[0] == '$':
-            expansion.append(macros.operation(
+            assembly_lines.append(macros.operation(
                 '=', result_score, macros.objective, final_val[1:], obj))
         else:  # only a number remains
-            expansion.append(macros.set(result_score, macros.objective, final_val))
+            assembly_lines.append(macros.set(result_score, macros.objective, final_val))
 
-        expansion.append(f'U execute if score {result_score} {macros.objective} matches 1')
+        assembly_lines.append(f'U execute if score {result_score} {macros.objective} matches 1')
 
-        return "\n".join(expansion)
-
-
-ExpressionNode.count = 0
+        return "\n".join(assembly_lines)
 
 
 class AssignNode(Node):
