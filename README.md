@@ -7,10 +7,10 @@ Command Block Scripting Language
 The following example will teleport the player 16 blocks in the x direction one block per tick.
 ```
 $i = 0
-while $i < 16 do
+while $i < 64 do
 	$i += 1
-	`tp @p ~1 ~ ~`
-endwhile
+	`execute as @p at @s run tp ^ ^ ^1`
+end
 ```
 
 More examples can be found in the "examples" directory
