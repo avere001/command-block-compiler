@@ -103,13 +103,6 @@ def add(var, obj, val):
     return "U scoreboard players add {} {} {}".format(var, obj, val)
 
 
-def cmp(var, obj, min, max=None):
-    if not max:
-        range_ = str(min)
-    else:
-        range_ = f'{min}..{max}'
-    return f"U execute if score {var} {objective} matches {range_}"
-
 
 def lt(var1, obj1, var2, obj2):
     pass

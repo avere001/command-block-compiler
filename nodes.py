@@ -113,22 +113,14 @@ class ExpressionNode(Node):
 
                         stack.append({'selector': tmp_name, 'objective': macros.objective})
                     elif e in ('<=', '==', '>=', '<', '>'):
-                        cmp_map = {
-                            '<': ('*', '-1'),
-                            '<=': ('*', '0'),
-                            '>': ('1', '*'),
-                            '>=': ('0', '*'),
-                            '==': ('0', '0')
-                        }
-                        expansion.append(macros.operation(
-                            '=', tmp_name[1:], macros.objective, val1[1:], obj1))
-                        expansion.append(macros.operation(
-                            '-=', tmp_name[1:], macros.objective, val2[1:], obj2))
-                        expansion.append(macros.cmp(
-                            tmp_name[1:], macros.objective, *cmp_map[e]))
-                        expansion.append("C scoreboard players set {} {} 1".format(tmp_name[1:], macros.objective))
-                        expansion.append("U execute at @s if data block ~ ~ ~-2 {SuccessCount:0}")
-                        expansion.append("C scoreboard players set {} {} 0".format(tmp_name[1:], macros.objective))
+                        mc_operator = e
+                        if e == '==':
+                            # Mojang decided that two equal signs were too many
+                            mc_operator = '='
+
+                        expansion.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
+                        expansion.append(f'U execute if score {val1[1:]} {obj1} {mc_operator} {val2[1:]} {obj2} '
+                                         f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
                         stack.append({'selector': tmp_name, 'objective': macros.objective})
             elif e == '!=':
                 val1, obj1 = get_value()
@@ -183,7 +175,7 @@ class ExpressionNode(Node):
         else:  # only a number remains
             expansion.append(macros.set(result_score, macros.objective, final_val))
 
-        expansion.append(macros.cmp(result_score, macros.objective, '1'))
+        expansion.append(f'U execute if score {result_score} {macros.objective} matches 1')
 
         return "\n".join(expansion)
 
