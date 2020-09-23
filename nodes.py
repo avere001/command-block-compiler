@@ -64,11 +64,7 @@ class ExpressionNode(Node):
         tmp_prefix = "${}_expr_{}_".format(program_prefix, self.id)
         assembly_lines = []
 
-        # evaluate postfix expression
         postfix_stack = flatten(self.expr_tree)
-        # print postfix_stack
-        import copy
-        postfix_expr = copy.deepcopy(postfix_stack[::-1])
 
         def convert_to_id(val, obj):
             if val[0] != '$':
@@ -77,7 +73,7 @@ class ExpressionNode(Node):
             else:
                 return val, obj
 
-        def get_value():
+        def pop_variable():
             val = stack.pop()
             # print val, type(val)
             if type(val) == type(''):
@@ -98,81 +94,59 @@ class ExpressionNode(Node):
                 assembly_lines.append(macros.operation(
                     '=', tmp_name[1:], macros.objective, result_score, macros.objective))
                 stack.append({'selector': tmp_name, 'objective': macros.objective})
-            elif e in ('+', '-', '*', '/', '%', '<=', '==', '>=', '<', '>'):
+            elif e in ('+', '-', '*', '/', '%', '<=', '==', '>=', '<', '>', '!=', 'and', 'or'):
 
                 # print "before: ", stack
-                val1, obj1 = get_value()
-                val2, obj2 = get_value()
+                val1, obj1 = convert_to_id(*pop_variable())
+                val2, obj2 = convert_to_id(*pop_variable())
 
-                if val1[0] != '$' and val2[0] != '$':
-                    stack.append(str(int(eval(val1 + ' ' + e + ' ' + val2))))
-                else:
-                    val1, obj1 = convert_to_id(val1, obj1)
-                    val2, obj2 = convert_to_id(val2, obj2)
-                    if e in "+-*/%":
-                        assembly_lines.append(macros.operation(
-                            '=', tmp_name[1:], macros.objective, val1[1:], obj1))
-                        assembly_lines.append(macros.operation(
-                            e + '=', tmp_name[1:], macros.objective, val2[1:], obj2))
+                if e in ('+', '-', '*', '/', '%'):
+                    assembly_lines.append(macros.operation(
+                        '=', tmp_name[1:], macros.objective, val1[1:], obj1))
+                    assembly_lines.append(macros.operation(
+                        e + '=', tmp_name[1:], macros.objective, val2[1:], obj2))
+                elif e in ('<=', '==', '>=', '<', '>', '!='):
+                    mc_operator = e
+                    if e == '==':
+                        # Mojang decided that two equal signs were too many
+                        mc_operator = '='
 
-                        stack.append({'selector': tmp_name, 'objective': macros.objective})
-                    elif e in ('<=', '==', '>=', '<', '>'):
-                        mc_operator = e
-                        if e == '==':
-                            # Mojang decided that two equal signs were too many
-                            mc_operator = '='
+                    if_or_unless = 'unless' if mc_operator == '!=' else 'if'
 
-                        assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
-                        assembly_lines.append(f'U execute if score {val1[1:]} {obj1} {mc_operator} {val2[1:]} {obj2} '
-                                              f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
-                        stack.append({'selector': tmp_name, 'objective': macros.objective})
-            elif e == '!=':
-                val1, obj1 = get_value()
-                val2, obj2 = get_value()
-                # != is equivalent to (val1 == val2) == 0
-                postfix_stack.append('==')
-                postfix_stack.append('==')
-                postfix_stack.append({'selector': val1, 'objective': obj1})
-                postfix_stack.append({'selector': val2, 'objective': obj2})
-                postfix_stack.append('0')
+                    assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
+                    assembly_lines.append(f'U execute {if_or_unless} score {val1[1:]} {obj1} {mc_operator} {val2[1:]} {obj2} '
+                                          f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
+                elif e == 'and':
+                    assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
+                    assembly_lines.append(f'U execute unless score {val1} {obj1} matches 0 '
+                                          f'run execute unless score {val2} {obj2} matches 0 '
+                                          f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
+                elif e == 'or':
+                    assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
+                    assembly_lines.append(f'U execute unless score {val1} {obj1} matches 0 '
+                                          f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
+                    assembly_lines.append(f'U execute unless score {val2} {obj2} matches 0 '
+                                          f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
+
+                stack.append({'selector': tmp_name, 'objective': macros.objective})
+
             elif e == 'not':
-                val, obj = get_value()
-                postfix_stack.append('==')
-                postfix_stack.append({'selector': val, 'objective': obj})
-                postfix_stack.append('0')
-            elif e in ('and', 'or'):
-                val1, obj1 = get_value()
-                val2, obj2 = get_value()
+                val, obj = convert_to_id(*pop_variable())
 
-                if val1[0] != '$' and val2[0] != '$':
-                    stack.append(str(int(bool(eval(val1 + ' ' + e + ' ' + val2)))))
-                else:
-                    val1, obj1 = convert_to_id(val1, obj1)
-                    val2, obj2 = convert_to_id(val2, obj2)
+                assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
+                assembly_lines.append(f'U execute unless score {val} {obj} matches 0 '
+                                      f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
 
-                    assembly_lines.append(macros.bool_of(val1[1:], obj1, tmp_name[1:] + "_L", macros.objective))
-                    assembly_lines.append(macros.bool_of(val2[1:], obj2, tmp_name[1:] + "_R", macros.objective))
-                    if e == 'and':
-                        # and is equivalant to bool(val1) + bool(val2) == 2
-                        postfix_stack.append('==')
-                        postfix_stack.append('+')
-                        postfix_stack.append({'selector': tmp_name + "_L", 'objective': macros.objective})
-                        postfix_stack.append({'selector': tmp_name + "_R", 'objective': macros.objective})
-                        postfix_stack.append('2')
-                    elif e == 'or':
-                        # or is equivalant to bool(val1) + bool(val2) >= 1
-                        postfix_stack.append('>=')
-                        postfix_stack.append('+')
-                        postfix_stack.append({'selector': tmp_name + "_L", 'objective': macros.objective})
-                        postfix_stack.append({'selector': tmp_name + "_R", 'objective': macros.objective})
-                        postfix_stack.append('1')
+                stack.append({'selector': tmp_name, 'objective': macros.objective})
             else:  # is a value
                 stack.append(e)
 
         # FIXME: this seems too complex, probably a better way..
         final_val = stack[0]
         if isinstance(final_val, dict):
-            final_val, obj = get_value()
+            final_val, obj = pop_variable()
+        else:
+            obj = macros.objective
         if final_val[0] == '$':
             assembly_lines.append(macros.operation(
                 '=', result_score, macros.objective, final_val[1:], obj))
