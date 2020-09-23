@@ -9,9 +9,16 @@ result_score = "{}_result".format(program_prefix)
 
 
 class Node(object):
-    def __init__(self, type_, content=()):
-        self.content = list(content)
-        self.type = type_
+    total_nodes = 0
+
+    def __init__(self, content=None):
+        if content is None:
+            content = []
+
+        self.id = self.total_nodes
+        self.total_nodes += 1
+
+        self.content = content
 
     def expand(self):
         """
@@ -45,14 +52,10 @@ class EmptyNode(Node):
 
 
 class ExpressionNode(Node):
-    total_nodes = 0
 
     def __init__(self, expr_tree):
-        super().__init__("expression")
+        super().__init__()
         self.expr_tree = expr_tree
-
-        self.id = self.total_nodes
-        self.total_nodes += 1
 
     def expand(self):
 
@@ -168,7 +171,7 @@ class ExpressionNode(Node):
 
         # FIXME: this seems too complex, probably a better way..
         final_val = stack[0]
-        if type(final_val) == type({}):
+        if isinstance(final_val, dict):
             final_val, obj = get_value()
         if final_val[0] == '$':
             assembly_lines.append(macros.operation(
@@ -183,16 +186,12 @@ class ExpressionNode(Node):
 
 class AssignNode(Node):
     def __init__(self, var, operator, expression):
-        super(AssignNode, self).__init__("assign")
+        super().__init__()
         self.var = var
         self.operator = operator
         self.expression = expression
 
-    # print ("Expression: {}".format(expression))
-
     def expand(self):
-        # print "expanding assign"
-        # print "expression: {}".format(self.expression.expand())
         assign_tmp = macros.operation(self.operator, self.var['selector'].strip('$'),
                                       self.var.get('objective', macros.objective), result_score, macros.objective)
         return "\n".join([
@@ -203,33 +202,31 @@ class AssignNode(Node):
 
 class MacroNode(Node):
     def __init__(self, macro_name, args):
-        super(MacroNode, self).__init__("macro")
+        super().__init__()
         self.macro_name = macro_name
         self.args = args
         self.context = "statement"
-
-    # print "args:".format(str(args))
 
     def expand(self):
         from macros import macros_dict
         macro = macros_dict[self.macro_name](*self.args)
         macro = macro if macro is not None else ''
 
-        if type(macro) != type(''):
+        if not isinstance(macro, str):
             raise ValueError("Macro must return string or None, instead got {}".format(type(macro)))
         if self.context == "statement":
             return macro
         else:
             expansion = []
-            expansion += ["U scoreboard players set {} {} 0".format(result_score, macros.objective)]
+            expansion += [f'U scoreboard players set {result_score} {macros.objective} 0']
             expansion += [macro]
-            expansion += ["C scoreboard players set {} {} 1".format(result_score, macros.objective)]
+            expansion += [f'C scoreboard players set {result_score} {macros.objective} 1']
             return "\n".join(expansion)
 
 
 class CommandNode(Node):
     def __init__(self, command):
-        super(CommandNode, self).__init__("command")
+        super(CommandNode, self).__init__()
         self.command = command
         self.context = "statement"
 
@@ -239,20 +236,16 @@ class CommandNode(Node):
         else:
             expansion = []
             expansion += ["U scoreboard players set {} {} 0".format(result_score, macros.objective)]
-            expansion += ["U" + self.command]
+            expansion += ["U " + self.command.strip()]
             expansion += ["C scoreboard players set {} {} 1".format(result_score, macros.objective)]
             return "\n".join(expansion)
 
 
 class WhileNode(Node):
     def __init__(self, condition, body):
-        super(WhileNode, self).__init__("while_statement")
-
-        self.body = body
+        super(WhileNode, self).__init__()
         self.condition = condition
-
-        self.id = WhileNode.count
-        WhileNode.count += 1
+        self.body = body
 
     def expand(self):
         # labels used by this while loop
@@ -284,40 +277,36 @@ WhileNode.count = 0
 
 class IfNode(Node):
     def __init__(self, condition, body, else_body=None):
-        super(IfNode, self).__init__("if_statement")
+        super().__init__()
 
         self.body = body
         self.condition = condition
         self.else_body = else_body
 
-        self.id = IfNode.count
-        IfNode.count += 1
-
     def expand(self):
         # labels used by this if statement
-        self.IB = "{}_IB_{}".format(program_prefix, self.id)  # IF BODY
-        self.IL = "{}_IL_{}".format(program_prefix, self.id)  # ELSE BODY
-        self.IE = "{}_IE_{}".format(program_prefix, self.id)  # IF END
+        label_body = f'{program_prefix}_IB_{self.id}'
+        label_else = f'{program_prefix}_IL_{self.id}'
+        label_end = f'{program_prefix}_IE_{self.id}'
 
         expansion = []
-        expansion += []
 
         expansion = [
-            str(self.condition.expand()),
-            'jmp {} {}'.format(self.IB, self.IL if self.else_body else self.IE),
-            '.' + self.IB,
-            str(Node.expand_list(self.body)),
-            'jmp {}'.format(self.IE)
+            self.condition.expand(),
+            'jmp {} {}'.format(label_body, label_else if self.else_body else label_end),
+            '.' + label_body,
+            Node.expand_list(self.body),
+            'jmp {}'.format(label_end)
         ]
 
         if self.else_body:
             expansion += [
-                '.' + self.IL,
-                str(Node.expand_list(self.else_body)),
-                'jmp {}'.format(self.IE),
+                '.' + label_else,
+                Node.expand_list(self.else_body),
+                'jmp {}'.format(label_end),
             ]
 
-        expansion += ['.' + self.IE]
+        expansion += ['.' + label_end]
 
         return "\n".join(expansion)
 

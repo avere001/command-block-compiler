@@ -326,9 +326,7 @@ def p_error(t):
 
 
 def compile_cbc(input_file):
-    with open(input_file) as f:
-        ast = Node("root", parser.parse(f.read()))
-
+    ast = Node(parser.parse(Path(input_file).read_text()))
     return ast.expand()
 
 
