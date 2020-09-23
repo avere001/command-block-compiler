@@ -133,7 +133,7 @@ def gen_command_block_structure(blocks, stands, output_file_name):
     size_tag = gen_size_tag(blocks)
 
     # https://minecraft.gamepedia.com/Data_version#.dat_and_.nbt_files
-    version_tag = TAG_Int(512, name="DataVersion")
+    version_tag = TAG_Int(2580, name="DataVersion")
 
     nbt_file.tags.append(size_tag)
     nbt_file.tags.append(entities_tag)
