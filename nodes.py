@@ -11,13 +11,16 @@ result_score = "{}_result".format(program_prefix)
 class Node(object):
     total_nodes = 0
 
+    @classmethod
+    def next_id(cls):
+        cls.total_nodes += 1
+        return cls.total_nodes
+
     def __init__(self, content=None):
         if content is None:
             content = []
 
-        self.id = self.total_nodes
-        self.total_nodes += 1
-
+        self.id = Node.next_id()
         self.content = content
 
     def expand(self):
