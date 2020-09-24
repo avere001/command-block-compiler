@@ -137,7 +137,7 @@ class ExpressionNode(Node):
                 val, obj = convert_to_id(*pop_variable())
 
                 assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
-                assembly_lines.append(f'U execute unless score {val} {obj} matches 0 '
+                assembly_lines.append(f'U execute if score {val[1:]} {obj} matches 0 '
                                       f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
 
                 stack.append({'selector': tmp_name, 'objective': macros.objective})
