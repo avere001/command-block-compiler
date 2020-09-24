@@ -39,8 +39,12 @@ All variables are prefixed with a '$'.
 The score of an entity can be referenced using a selector followed by a colon and the objective.
 Example:
 ```
+`team add red`
+`team join red @p`
+`scoreboard objectives add kills minecraft.custom:minecraft.mob_kills`
+
 @p[team=red]:kills = 0
-while @[team=red]:kills < 5: 
+while @p[team=red]:kills < 5 do
     `say kill more enemies, red team!`
 end
 `say took you long enough..`
