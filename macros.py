@@ -95,7 +95,7 @@ def tp_location(selector, x, y, z, yaw=None, pitch=None):
 # TODO: create annotation for only allowing macro to be called once
 
 ############### Used by compiler ##############################
-def set(var, obj, val):
+def set_to_literal(var, obj, val):
     return "U scoreboard players set {} {} {}".format(var, obj, val)
 
 

@@ -71,7 +71,7 @@ class ExpressionNode(Node):
 
         def convert_to_id(val, obj):
             if val[0] != '$':
-                assembly_lines.append(macros.set(val, macros.objective, val))
+                assembly_lines.append(macros.set_to_literal(val, macros.objective, val))
                 return '$' + val, macros.objective
             else:
                 return val, obj
@@ -154,7 +154,7 @@ class ExpressionNode(Node):
             assembly_lines.append(macros.operation(
                 '=', result_score, macros.objective, final_val[1:], obj))
         else:  # only a number remains
-            assembly_lines.append(macros.set(result_score, macros.objective, final_val))
+            assembly_lines.append(macros.set_to_literal(result_score, macros.objective, final_val))
 
         assembly_lines.append(f'U execute if score {result_score} {macros.objective} matches 1')
 
