@@ -30,6 +30,7 @@ class Node(object):
         expanded_nodes = Node.expand_list(self.content)
         return "\n".join([
             ".{}_BEGIN".format(program_prefix),
+            f"U scoreboard objectives add {macros.objective} dummy",
             expanded_nodes
         ])
 

@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 import json
+from collections import OrderedDict
 from pathlib import Path
 
 from nbt.nbt import *
-from collections import OrderedDict
-import string
-import os
 
 
 class Palette:
