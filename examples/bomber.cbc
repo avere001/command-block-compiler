@@ -1,4 +1,5 @@
 set_objective("bomb")
+set_prefix("bomb")
 
 $i = 0
 `summon minecraft:armor_stand ~ ~-5 ~ {Marker:1b,Tags:["bomber_spawner"]}`
