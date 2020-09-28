@@ -125,6 +125,32 @@ def operation(op, var1, obj1, var2, obj2):
     return 'U scoreboard players operation {} {} {} {} {}'.format(var1, obj1, op, var2, obj2)
 
 
+includes = set()
+
+
+def include(file_name):
+    """
+    include a program.
+
+    this program will be added to a list of files to also be compiled.
+    these files assembly outputs will be concatenated with the current program
+    """
+    import os
+    if include.call_count == 0:
+        file_path = os.path.realpath(file_name)
+        includes.add(file_path)
+        include.dir_path = os.path.dirname(file_path) + "/"
+    else:
+        includes.add(include.dir_path + file_name)
+
+    include.call_count += 1
+
+
+include.call_count = 0
+include.dir_path = ""
+
+
+
 # add all macros to a dict for ease of use
 import types
 
