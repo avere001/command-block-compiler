@@ -118,18 +118,19 @@ class ExpressionNode(Node):
                     if_or_unless = 'unless' if mc_operator == '!=' else 'if'
 
                     assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
-                    assembly_lines.append(f'U execute {if_or_unless} score {val1[1:]} {obj1} {mc_operator} {val2[1:]} {obj2} '
-                                          f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
+                    assembly_lines.append(
+                        f'U execute {if_or_unless} score {val1[1:]} {obj1} {mc_operator} {val2[1:]} {obj2} '
+                        f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
                 elif e == 'and':
                     assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
-                    assembly_lines.append(f'U execute unless score {val1} {obj1} matches 0 '
-                                          f'run execute unless score {val2} {obj2} matches 0 '
+                    assembly_lines.append(f'U execute unless score {val1[1:]} {obj1} matches 0 '
+                                          f'run execute unless score {val2[1:]} {obj2} matches 0 '
                                           f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
                 elif e == 'or':
                     assembly_lines.append(f'U scoreboard players set {tmp_name[1:]} {macros.objective} 0')
-                    assembly_lines.append(f'U execute unless score {val1} {obj1} matches 0 '
+                    assembly_lines.append(f'U execute unless score {val1[1:]} {obj1} matches 0 '
                                           f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
-                    assembly_lines.append(f'U execute unless score {val2} {obj2} matches 0 '
+                    assembly_lines.append(f'U execute unless score {val2[1:]} {obj2} matches 0 '
                                           f'run scoreboard players set {tmp_name[1:]} {macros.objective} 1')
 
                 stack.append({'selector': tmp_name, 'objective': macros.objective})
