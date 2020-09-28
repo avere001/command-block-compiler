@@ -326,8 +326,14 @@ def p_error(t):
 
 
 def compile_cbc(input_file):
-    ast = Node(parser.parse(Path(input_file).read_text()))
-    return ast.expand()
+    assemblies = [Node(parser.parse(Path(input_file).read_text())).expand()]
+    seen_includes = set()
+    while macros.includes:
+        include = macros.includes.pop()
+        if include not in seen_includes:
+            seen_includes.add(include)
+            assemblies.append(Node(parser.parse(Path(include).read_text())).expand())
+    return concat_assembly(assemblies)
 
 
 def concat_assembly(assemblies):
@@ -359,6 +365,4 @@ if __name__ == '__main__':
     print(f"compiling {input_file_name}")
     assembly_file = compile_cbc(input_file_name)
     Path(input_file_name.rsplit('.', maxsplit=1)[0] + '.cba').write_text(assembly_file)
-
-    assembly_content = concat_assembly([assembly_file])
-    assemble.assemble(assembly_content, output_file_name).write_file()
+    assemble.assemble(assembly_file, output_file_name).write_file()
