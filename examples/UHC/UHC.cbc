@@ -1,20 +1,14 @@
 set_prefix('WW')
 set_objective('vars')
+include('examples/UHC/loop.cbc')
 
 #################Initialization###################
 `gamerule commandBlockOutput false`
-`scoreboard objectives add vars dummy`
-`scoreboard objectives add testing dummy`
 
-`team add alive`
+`team add civilians`
 `team add dead`
 `team add werewolf`
 `team add lobby`
-
-# `scoreboard teams option dead nametagVisibility never`
-
-# `gamerule sendCommandFeedback false`
-`gamerule logAdminCommands false`
 
 `kill @e[name=spawndummy]`
 if not `execute if entity @e[name=spawndummy]` then
@@ -38,7 +32,7 @@ while true do
     
     `tp @a @e[name=spawndummy,limit=1]`
     `execute as @e[name=spawndummy] at @s run worldborder center ~ ~`
-#    `worldborder set 10`
+    `worldborder set 10`
     
     `execute as @e[name=spawndummy] at @s run spawnpoint @a ~ ~ ~`
     `execute as @e[name=spawndummy] at @s run setworldspawn ~ ~ ~`
@@ -57,7 +51,10 @@ while true do
     @a[team=lobby]:start_trigger = 0
     `execute as @e[name=spawndummy] at @s run data merge block ~ ~1 ~ {Text1:'{"text":"Right Click","clickEvent":{"action":"run_command","value":"/trigger start_trigger set 1"}}',Text2:'{"text":"to"}',Text3:'{"text":"Ready Up!"}'}`
     # wait for sign to be pressed
-    while `execute if score @p start_trigger matches 0` do
+    #while `execute if score @p start_trigger matches 0` do
+    $ready = 0
+    while not $ready do
+        $ready = 1
         `gamemode adventure @a[gamemode=survival,team=!lobby]`
         `scoreboard players enable @a start_trigger`
         `weather clear 1000000`
@@ -70,6 +67,7 @@ while true do
             `tp @a[team=!lobby] @e[name=spawndummy,limit=1]`
             `team join lobby @a`
         end
+        `execute as @e[team=lobby] if score @s start_trigger matches 0 run scoreboard players set ready vars 0`
     end
     
     `gamerule doDaylightCycle true`
@@ -78,12 +76,18 @@ while true do
     `difficulty easy`
     `gamemode survival @a`
     
-    `scoreboard objectives add health health`
-    
     `time set 0`
     `worldborder set 300`
+    #`spreadplayers ~ ~ 75.0 300.0 under 60 false @a`
     
-    `team join alive @a`
+    `team join werewolf @r`
+    `team join civilians @e[team=lobby]`
+    $one = 1
+    $initial_civilians = 0
+    `execute as @e[team=civilians] run scoreboard players operation initial_civilians vars += one vars`
+    `title @p[team=werewolf] times 10 100 10`
+    `title @p[team=werewolf] title ["",{"text":"You Are The Werewolf","color":"dark_red"}]`
+
     ##################################################
     
     ##################GameLoop########################
@@ -91,18 +95,49 @@ while true do
     
     # wait for all players to respawn
     $gameover = 0
-    while not `execute if score @p[team=werewolf] health matches 0` do
-        ``
+    $i = 0
+    $civilian_deaths = 0
+    $werewolf_deaths = 0
+    $werewolf_equipped = 0
+    $days = 0
+    `scoreboard objectives add deaths deathCount`
+    @e[team=civilians]:deaths = 0
+    @e[team=werewolf]:deaths = 0
+    while `execute as @e[team=civilians] if score 1 vars matches 1` and `execute as @e[team=werewolf] if score 1 vars matches 1` and $days < $initial_civilians/2 do
+        `execute as @e[team=civilians] if score @s deaths matches 1.. run team join dead @s`
+        `execute as @e[team=werewolf] if score @s deaths matches 1.. run team join dead @s`
+        if $daytime > 13000 then
+            `replaceitem entity @p[team=werewolf] armor.head minecraft:leather_helmet{Enchantments:[{id:"minecraft:protection", lvl:4}]}`
+            `replaceitem entity @p[team=werewolf] armor.chest minecraft:leather_chestplate{Enchantments:[{id:"minecraft:protection", lvl:4}]}`
+            `replaceitem entity @p[team=werewolf] armor.legs minecraft:leather_leggings{Enchantments:[{id:"minecraft:protection", lvl:4}]}`
+            `replaceitem entity @p[team=werewolf] armor.feet minecraft:leather_boots{Enchantments:[{id:"minecraft:protection", lvl:4},{id:"minecraft:feather_falling", lvl:4},{id:"minecraft:depth_strider", lvl:3}]}`
+            `effect give @p[team=werewolf] minecraft:jump_boost 2 3`
+            `effect give @p[team=werewolf] minecraft:speed 2 3`
+            `effect give @p[team=werewolf] minecraft:saturation 2 3`
+            $werewolf_equipped = 1
+        end
+        if $daytime < 13000 and $werewolf_equipped == 1 then
+            `clear @p[team=werewolf] minecraft:leather_helmet`
+            `clear @p[team=werewolf] minecraft:leather_chestplate`
+            `clear @p[team=werewolf] minecraft:leather_leggings`
+            `clear @p[team=werewolf] minecraft:leather_boots`
+            $werewolf_equipped = 0
+        end
+        $i += 1
+        if $i % 2 then
+            `time add 1`
+        end
+        `execute store result score days vars run time query day`
     end
     
     # display gameover message
     `title @a times 10 100 10`
-    if $living_werewolf then
+    if `execute as @e[team=werewolf] if score 1 vars matches 1` then
         #the werewolf won
         `title @a title ["",{"text":"The Werewolf Wins!","color":"dark_red"}]`
     else
         #the civilians won
-        if $days == $initial_civilians then
+        if $days >= $initial_civilians/2 then
             `title @a title ["",{"text":"The Civilians Escaped!","color":"green"}]`
         else
             `title @a title ["",{"text":"The Civilians Killed The Werewolf!","color":"green"}]`

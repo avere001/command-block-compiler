@@ -1,4 +1,9 @@
 /*.cba
-/*.nbt
+*.nbt
 ply/
 nbt/
+examples/UHC/*.cba
+parsetab.py
+parser.out
+examples/bomber.cba
+examples/example.cba

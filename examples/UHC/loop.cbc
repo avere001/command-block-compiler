@@ -1,0 +1,6 @@
+set_prefix('LOOP')
+$daytime = 0
+
+while true do
+	`execute store result score daytime vars run time query daytime`
+end
